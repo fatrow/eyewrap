@@ -70,8 +70,8 @@
   (cap mem form))
 
 (defn update-mem [mem form v]
-  (let [newid (inc (:id mem))]
-    {:id newid :result (assoc (:result mem) newid {:form form :out v})}))
+  (let [newid (inc (:maxid mem))]
+    {:maxid newid :result (assoc (:result mem) newid {:form form :out v})}))
 
 (defmacro memo-calc [mem form v]
   `(let [{id# :maxid} (swap! ~mem update-mem ~form ~v)]
