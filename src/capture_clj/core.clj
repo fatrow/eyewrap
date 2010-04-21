@@ -1,4 +1,9 @@
 
+(ns
+  #^{:author "Takahiro Hozumi"
+     :doc "Code observation tool."}
+  hozumi.capture-clj
+  (:use [clojure.contrib.pprint]))  
 
 (defn elem? [x]
   (not (coll? x)))
