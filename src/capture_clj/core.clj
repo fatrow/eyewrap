@@ -113,7 +113,9 @@
 	  (= 'def head) (let [[name [fs _ :as body]] tail]
 			  (cond (special-symbol? fs) `(def ~name (sp-cap ~mem ~body))
 				:else `(def ~name (maybe-f-cap ~mem ~body))))
-	  (= 'fn* head) (let [[binds fnbody] (first tail)]
-			  `(fn* ~binds (maybe-f-cap ~mem ~fnbody)))
+	  (= 'fn* head) ;(let [binds fnbody] (first tail)
+	  (fn* (interleave (map first tail) (map (map (rest %)tail))(maybe-f-cap ~mem ~fnbody)))
+	  (seq? (second form)) (let [[binds fnbody] (first tail)]
+						     `(fn* ~binds (maybe-f-cap ~mem ~fnbody)))
 	  (= 'do head) `(do ~@(map #(list 'maybe-f-cap mem %) tail)))))
 
