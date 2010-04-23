@@ -71,9 +71,6 @@
   (cap mem form))
 
 (defn update-mem
-  ([mem form v]
-     (let [newid (inc (:maxid mem))]
-       {:maxid newid :result (assoc (:result mem) newid {:form form :out v})}))
   ([mem form v childs]
      (let [newid (inc (:maxid mem))]
        {:maxid newid :result (assoc (:result mem)
@@ -84,13 +81,16 @@
 
 (defmacro memo-calc
   ([mem form v]
-     `(let [{id# :maxid} (swap! ~mem update-mem ~form ~v)]
-	(get-in @~mem [:result id# :out])))
+     `(memo-calc ~mem ~form ~v nil))
   ([mem form v childs]
      `(let [{id# :maxid} (swap! ~mem update-mem ~form ~v ~childs)]
 	(get-in @~mem [:result id# :out]))))
   
-
+(defn id-reverse [{result :result :as mem}]
+  (let [k (keys result)
+	v (vals result)]
+    (assoc mem :result (apply hash-map (interleave (reverse k) v)))))
+  
 (defmacro cap [form]
   `(let [mem# (atom {:maxid 0, :result (sorted-map)})]
      (maybe-f-cap mem# ~(macroexpand-all form))
@@ -101,13 +101,16 @@
 (defmacro maybe-f-cap [mem form]
   (cond (elem? form) `(memo-calc ~mem ~form)
 	(seq? form) (let [[head & tail] form]
-		      (cond (func? (resolve head)) `(memo-calc ~mem
-							       '~form
-							       (apply ~head
-								      (tail-cap ~mem ~tail))
-							       (count '~tail))
-			    (special-symbol? head) `(sp-cap ~mem ~form)
-			    (elem? head) `(apply ~head (tail-cap ~mem ~tail))))
+		      (cond (special-symbol? head) `(sp-cap ~mem ~form)
+			    (or (func? (resolve head))
+					;Symbol as a function
+				(symbol? head)) `(memo-calc ~mem
+							    '~form
+							    (apply ~head
+								   (tail-cap ~mem ~tail))
+							    (count '~tail))
+				:else :error))
+					;(elem? head) `(apply ~head (tail-cap ~mem ~tail))))
 	(coll? form) `(memo-calc ~mem '~form (conv-to ~form (tail-cap ~mem ~form)))))
 
 (defmacro tail-cap [mem [head & tail :as form]]
@@ -124,9 +127,10 @@
     (condp = head
       'let* (let [binds (second form)
 		  body (drop 2 form)
-		  code `(let* ~(vec (interleave (take-nth 2 binds)
-						(map #(list 'maybe-f-cap mem %)
-						     (take-nth 2 (rest binds)))))
+		  newbinds (vec (interleave (take-nth 2 binds)
+					    (map #(list 'maybe-f-cap mem %)
+						 (take-nth 2 (rest binds)))))
+		  code `(let* ~newbinds
 			      ~@(map #(list 'maybe-f-cap mem %) body))]
 	      `(memo-calc ~mem
 			  '~form
@@ -140,6 +144,9 @@
 			(map (fn [s] (map #(list 'maybe-f-cap mem %) s))
 			     (map rest tail))))
       'do `(do ~@(map #(list 'maybe-f-cap mem %) tail)))))
+
+(defn prm [{:keys [maxid result]}]
+  (result maxid))
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
