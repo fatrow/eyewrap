@@ -70,16 +70,29 @@
 (defn capn [mem form]
   (cap mem form))
 
-(defn update-mem [mem form v]
-  (let [newid (inc (:maxid mem))]
-    {:maxid newid :result (assoc (:result mem) newid {:form form :out v})}))
+(defn update-mem
+  ([mem form v]
+     (let [newid (inc (:maxid mem))]
+       {:maxid newid :result (assoc (:result mem) newid {:form form :out v})}))
+  ([mem form v childs]
+     (let [newid (inc (:maxid mem))]
+       {:maxid newid :result (assoc (:result mem)
+			       newid {:form form,
+				      :out v,
+				      :childs childs})})))
+  
 
-(defmacro memo-calc [mem form v]
-  `(let [{id# :maxid} (swap! ~mem update-mem ~form ~v)]
-     (get-in @~mem [:result id# :out])))
+(defmacro memo-calc
+  ([mem form v]
+     `(let [{id# :maxid} (swap! ~mem update-mem ~form ~v)]
+	(get-in @~mem [:result id# :out])))
+  ([mem form v childs]
+     `(let [{id# :maxid} (swap! ~mem update-mem ~form ~v ~childs)]
+	(get-in @~mem [:result id# :out]))))
+  
 
 (defmacro cap [form]
-  `(let [mem# (atom {:maxid 0, :result {}})]
+  `(let [mem# (atom {:maxid 0, :result (sorted-map)})]
      (maybe-f-cap mem# ~(macroexpand-all form))
      mem#))
 
@@ -88,7 +101,11 @@
 (defmacro maybe-f-cap [mem form]
   (cond (elem? form) `(memo-calc ~mem ~form)
 	(seq? form) (let [[head & tail] form]
-		      (cond (func? (resolve head)) `(memo-calc ~mem '~form (apply ~head (tail-cap ~mem ~tail)))
+		      (cond (func? (resolve head)) `(memo-calc ~mem
+							       '~form
+							       (apply ~head
+								      (tail-cap ~mem ~tail))
+							       (count '~tail))
 			    (special-symbol? head) `(sp-cap ~mem ~form)
 			    (elem? head) `(apply ~head (tail-cap ~mem ~tail))))
 	(coll? form) `(memo-calc ~mem '~form (conv-to ~form (tail-cap ~mem ~form)))))
@@ -104,22 +121,21 @@
 
 (defmacro sp-cap [mem form]
   (let [[head & tail] form]
-    (cond
-      (= 'let* head) (let [binds (second form)
-			   body (drop 2 form)]
-		       (concat (list 'let*)
-			       (list (vec (interleave (take-nth 2 binds)
-						      (map #(list 'maybe-f-cap mem %)
-							   (take-nth 2 (rest binds))))))
-			       (map #(list 'maybe-f-cap mem %) body)))
-      (= 'def head) (let [[name [fs _ :as body]] tail]
-		      (cond (special-symbol? fs) `(def ~name (sp-cap ~mem ~body))
-			    :else `(def ~name (maybe-f-cap ~mem ~body))))
-      (= 'fn* head) `(fn* ~@(map #(into %2 (list %1))
-				(map first tail)
-				(map (fn [s] (map #(list 'maybe-f-cap mem %) s))
-				     (map rest tail))))
-      (= 'do head) `(do ~@(map #(list 'maybe-f-cap mem %) tail)))))
+    (condp = head
+      'let* (let [binds (second form)
+		  body (drop 2 form)]
+	      `(let* ~(vec (interleave (take-nth 2 binds)
+				       (map #(list 'maybe-f-cap mem %)
+					    (take-nth 2 (rest binds)))))
+		     ~@(map #(list 'maybe-f-cap mem %) body)))
+      'def (let [[name [fs _ :as body]] tail]
+	     (cond (special-symbol? fs) `(def ~name (sp-cap ~mem ~body))
+		   :else `(def ~name (maybe-f-cap ~mem ~body))))
+      'fn* `(fn* ~@(map (fn [arg body] (into body (list arg)))
+			(map first tail)
+			(map (fn [s] (map #(list 'maybe-f-cap mem %) s))
+			     (map rest tail))))
+      'do `(do ~@(map #(list 'maybe-f-cap mem %) tail)))))
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
@@ -127,6 +143,8 @@
 ;(([x] (inc x) (dec x))
 ; ([x y] (+ x y) (- x y)))
 
-[1 2] [[[:a :b] [:c :d]] [[:e :f] [:g :h] [:i :j]]]
-[1 [:a :b] [:c :d]] [2 [:e :f] [:g :h] [:i :j]]
+;([1 2] (:a :b) (:c :d)) ([3 4] (:e :f) (:g :h))
+
+;(([1 2] (macro1 (:a :b)) (macro1 (:c :d)))
+; ([3 4] (macro1 (:e :f)) (macro1 (:g :h))))
 
