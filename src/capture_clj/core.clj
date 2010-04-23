@@ -123,11 +123,15 @@
   (let [[head & tail] form]
     (condp = head
       'let* (let [binds (second form)
-		  body (drop 2 form)]
-	      `(let* ~(vec (interleave (take-nth 2 binds)
-				       (map #(list 'maybe-f-cap mem %)
-					    (take-nth 2 (rest binds)))))
-		     ~@(map #(list 'maybe-f-cap mem %) body)))
+		  body (drop 2 form)
+		  code `(let* ~(vec (interleave (take-nth 2 binds)
+						(map #(list 'maybe-f-cap mem %)
+						     (take-nth 2 (rest binds)))))
+			      ~@(map #(list 'maybe-f-cap mem %) body))]
+	      `(memo-calc ~mem
+			  '~form
+			  ~code
+			  ~(+ (-> (count binds) (/ ,,, 2)) (count body))))
       'def (let [[name [fs _ :as body]] tail]
 	     (cond (special-symbol? fs) `(def ~name (sp-cap ~mem ~body))
 		   :else `(def ~name (maybe-f-cap ~mem ~body))))
