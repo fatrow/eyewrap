@@ -68,10 +68,11 @@
 (declare tail-cap sp-cap)
 
 (defmacro maybe-f-cap [mem form]
-  (cond (elem? form) `(memo-calc ~mem ~form)
+  (cond (elem? form) `(memo-calc ~mem '~form ~form)
 	(seq? form) (let [[head & tail] form]
 		      (cond (special-symbol? head) `(sp-cap ~mem ~form)
-			    (or (func? (resolve head))
+			    (or (keyword? head)
+				(func? (resolve head))
 					;Symbol as a function
 				(symbol? head)) `(memo-calc ~mem
 							    '~form
@@ -82,14 +83,16 @@
 					;(elem? head) `(apply ~head (tail-cap ~mem ~tail))))
 	(coll? form) `(memo-calc ~mem '~form (conv-to ~form (tail-cap ~mem ~form)))))
 
-(defmacro tail-cap [mem [head & tail :as form]]
-  (cond (empty? form) ()
-	(elem? head) `(cons (memo-calc ~mem '~head ~head)
-			    (tail-cap ~mem ~tail))
-	(seq? head) `(cons (maybe-f-cap ~mem ~head)
-			    (tail-cap ~mem ~tail))
-	(coll? head) `(cons (maybe-f-cap ~mem ~head)
-			    (tail-cap ~mem ~tail))))
+(defmacro tail-cap [mem form]
+  (let [head (first form)
+	tail (rest form)]
+    (cond (empty? form) ()
+	  (elem? head) `(cons (memo-calc ~mem '~head ~head)
+			      (tail-cap ~mem ~tail))
+	  (seq? head) `(cons (maybe-f-cap ~mem ~head)
+			     (tail-cap ~mem ~tail))
+	  (coll? head) `(cons (maybe-f-cap ~mem ~head)
+			      (tail-cap ~mem ~tail)))))
 
 (defmacro sp-cap [mem form]
   (let [[head & tail] form]
@@ -109,10 +112,24 @@
 	     (cond (special-symbol? fs) `(def ~name (sp-cap ~mem ~body))
 		   :else `(def ~name (maybe-f-cap ~mem ~body))))
       'fn* `(fn* ~@(map (fn [arg body] (into body (list arg)))
-			(map first tail)
-			(map (fn [s] (map #(list 'maybe-f-cap mem %) s))
-			     (map rest tail))))
-      'do `(do ~@(map #(list 'maybe-f-cap mem %) tail)))))
+				   (map first tail)
+				   (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
+					(map rest tail))))
+      ;`(memo-calc ~mem
+	;	       '~form
+		;       (fn* ~@(map (fn [arg body] (into body (list arg)))
+			;	   (map first tail)
+				;   (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
+					;(map rest tail))))
+;		       ~(count tail))
+      'if `(memo-calc ~mem
+		      '~form
+		      (if ~@(map #(list 'maybe-f-cap mem %) tail))
+		      2)
+      'do `(memo-calc ~mem
+		      '~form
+		      (do ~@(map #(list 'maybe-f-cap mem %) tail))
+		      ~(count tail)))))
 
 (defn- min-id [node]
   (if (:childs node)
@@ -140,14 +157,16 @@
 (defn- prs1 [{:keys [form out childs child-node]} level]
   (if (= form out)
     :const
-    (do (println level ": " form)
-	(doseq [{cform :form, cout :out, :as child} child-node]
-	  (if (not= :const (prs1 child (inc level)))
-	    (println level ": ->" (replace {cform cout} form))))
+    (do (println level ": + " form)
+	(let [uptodate-form (atom form)]
+	  (doseq [{cform :form, cout :out, :as child} child-node]
+	    (if (not= :const (prs1 child (inc level)))
+	      (println level ": ->" (swap! uptodate-form
+					   #(replace {cform cout} %))))))
 	(println level ": =>" out))))
 
 (defn prs [{:keys [maxid result]}]
-  (prm1 (first (makenode result maxid)) 0))
+  (prs1 (first (makenode result maxid)) 0))
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
