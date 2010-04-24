@@ -72,13 +72,17 @@
 
 (defn update-mem
   ([mem form v childs]
-     (let [newid (inc (:maxid mem))]
+     (let [newid (inc (:maxid mem))
+	   ans1 (if childs
+		  (assoc {} :childs childs)
+		  {})
+	   ans2 (assoc ans1
+		  :out v,
+		  :form form,
+		  :id newid)
+	   ]
        {:maxid newid :result (assoc (:result mem)
-			       newid {:form form,
-				      :out v,
-				      :childs childs
-				      :id newid})})))
-  
+			       newid ans2)})))
 
 (defmacro memo-calc
   ([mem form v]
@@ -161,13 +165,14 @@
 	   (cond
 	     (nil? childs-num) (cons current
 				     (makenode result (dec id) (dec need-num)))
-	     :else (let [child-node (makenode result (dec id) childs-num)
+	     :else (let [child-node (reverse (makenode result (dec id) childs-num))
 			 minid (apply min (map min-id child-node))]
 		     (cons (assoc current
 			     :child-node child-node)
 			   (makenode result
 				     (dec minid)
 				     (dec need-num)))))))))
+
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
