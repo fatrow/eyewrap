@@ -76,7 +76,8 @@
        {:maxid newid :result (assoc (:result mem)
 			       newid {:form form,
 				      :out v,
-				      :childs childs})})))
+				      :childs childs
+				      :id newid})})))
   
 
 (defmacro memo-calc
@@ -145,8 +146,28 @@
 			     (map rest tail))))
       'do `(do ~@(map #(list 'maybe-f-cap mem %) tail)))))
 
-(defn prm [{:keys [maxid result]}]
-  (result maxid))
+(defn min-id [node]
+  (if (:childs node)
+    (apply min (:id node) (map min-id (:child-node node)))
+    (:id node)))
+
+(defn makenode
+  ([result id]
+     (makenode result id 1))
+  ([result id need-num]
+     (if (zero? need-num) ()
+	 (let [current (result id)
+	       childs-num (:childs current)]
+	   (cond
+	     (nil? childs-num) (cons current
+				     (makenode result (dec id) (dec need-num)))
+	     :else (let [child-node (makenode result (dec id) childs-num)
+			 minid (apply min (map min-id child-node))]
+		     (cons (assoc current
+			     :child-node child-node)
+			   (makenode result
+				     (dec minid)
+				     (dec need-num)))))))))
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
