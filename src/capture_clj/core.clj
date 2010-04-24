@@ -85,7 +85,7 @@
   ([mem form v childs]
      `(let [{id# :maxid} (swap! ~mem update-mem ~form ~v ~childs)]
 	(get-in @~mem [:result id# :out]))))
-  
+
 (defn id-reverse [{result :result :as mem}]
   (let [k (keys result)
 	v (vals result)]
