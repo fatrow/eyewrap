@@ -173,6 +173,17 @@
 				     (dec minid)
 				     (dec need-num)))))))))
 
+(defn prm [{:keys [maxid result]}]
+  ())
+
+(defn prm1 [{:keys [form out childs child-node]} level]
+  (if (= form out)
+    nil
+    (do (println level ": " form)
+	(doseq [{cform :form, cout :out, :as child} child-node]
+	  (prm1 child (inc level))
+	  (println level ": =>" (replace {cform cout} form)))
+	(println level ": =>" out))))
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
