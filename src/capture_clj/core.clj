@@ -34,42 +34,6 @@
 			    (map macroexpand-all (rest form))))
 	(coll? form) (conv-to form (map macroexpand-all form))))
 
-
-(defn argtype [lis]
-  (let [current-arg-num (count (rest lis))
-	arg-lists (reduce (fn [m x] (assoc m (count x) x)) {}
-			  (:arglists (meta (resolve (first lis)))))]
-    (if-let [atype (arg-lists current-arg-num)]
-      atype
-      (arg-lists (apply max (keys arg-lists))))))
-
-(declare caprest)
-(defn cap [stack [head & tail :as form]]
-  (println :s stack :f form :cap)
-  (cond (elem? form) (conj stack form)
-	(empty? form) (conj stack form)
-	(list? form) (if (func? head)
-		       (caprest (conj stack form) tail)
-		       (caprest (conj stack form) form))
-	:else (caprest (conj stack form) form)))
-
-(defn caprest [stack [head & tail :as form]]
-  (println :s stack :f form :caprest)
-  (cond (elem? form) (conj stack form)
-	(empty? form) (conj stack form)
-	:else (do (println head)
-		  (cond (list? head) (caprest (cap stack head) tail)
-			(coll? head) (caprest (caprest stack head) tail)
-			:else (caprest (conj stack head) tail)))))
-
-(defmacro visu [form]
-  (letfn [(make-table [m node]
-		      (if (coll? node)
-			(reduce (fn [ma lis]
-				  (assoc ma lis (eval lis))))))]))
-(defn capn [mem form]
-  (cap mem form))
-
 (defn update-mem
   ([mem form v childs]
      (let [newid (inc (:maxid mem))
@@ -150,12 +114,12 @@
 			     (map rest tail))))
       'do `(do ~@(map #(list 'maybe-f-cap mem %) tail)))))
 
-(defn min-id [node]
+(defn- min-id [node]
   (if (:childs node)
     (apply min (:id node) (map min-id (:child-node node)))
     (:id node)))
 
-(defn makenode
+(defn- makenode
   ([result id]
      (makenode result id 1))
   ([result id need-num]
@@ -173,17 +137,17 @@
 				     (dec minid)
 				     (dec need-num)))))))))
 
-(defn prm [{:keys [maxid result]}]
-  ())
-
-(defn prm1 [{:keys [form out childs child-node]} level]
+(defn- prs1 [{:keys [form out childs child-node]} level]
   (if (= form out)
-    nil
+    :const
     (do (println level ": " form)
 	(doseq [{cform :form, cout :out, :as child} child-node]
-	  (prm1 child (inc level))
-	  (println level ": =>" (replace {cform cout} form)))
+	  (if (not= :const (prs1 child (inc level)))
+	    (println level ": ->" (replace {cform cout} form))))
 	(println level ": =>" out))))
+
+(defn prs [{:keys [maxid result]}]
+  (prm1 (first (makenode result maxid)) 0))
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
