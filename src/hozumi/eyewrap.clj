@@ -67,11 +67,6 @@
   {:maxid 0, :result (sorted-map)})
 
 (defmacro cap [form]
-  `(let [mem# (atom (mem-init))]
-     (maybe-f-cap mem# ~(macroexpand-all form))
-     (prs @mem#)))
-
-(defmacro cap [form]
   (let [expanded (macroexpand-all form)
 	op (first expanded)
 	name (second expanded)
