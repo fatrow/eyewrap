@@ -103,7 +103,8 @@
 							    (count '~tail))
 				:else :error))
 					;(elem? head) `(apply ~head (tail-cap ~mem ~tail))))
-	(coll? form) `(memo-calc ~mem '~form (conv-to ~form (tail-cap ~mem ~form)))))
+	(coll? form) `(memo-calc ~mem '~form (conv-to ~form (tail-cap ~mem ~form))
+				 ~(count form))));(if (map? form) (* 2(count form)) (count form))))
 
 (defmacro tail-cap [mem form]
   (let [head (first form)

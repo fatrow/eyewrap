@@ -1,3 +1,6 @@
+(use 'clojure.contrib.seq-utils)
+(doseq [[i x] (indexed [:a :b :c :d :e])]
+  (println i x))
 
 (defn touch [coll target-index]
   (-> [(coll target-index)]
@@ -28,24 +31,25 @@
     map? "Map!"
     vector? "Vector!"))
 
-(use 'clojure.contrib.server-socket)
-(import (java.io BufferedReader
-                 InputStreamReader
-                 PrintWriter
-                 OutputStreamWriter))
 
-(defn my-line-seq
+(Defn my-line-seq
   "Returns the lines of text from rdr as a lazy sequence of strings.
   rdr must implement java.io.BufferedReader."
   [#^java.io.BufferedReader rdr]
   (when-let [line (.readLine rdr)]
     (cons line (lazy-seq (line-seq rdr)))))
 
+(use 'clojure.contrib.server-socket)
+(import (java.io BufferedReader
+                 InputStreamReader
+                 PrintWriter
+                 OutputStreamWriter))
+
 (defn hoge [in out]
   (let [reader (BufferedReader. (InputStreamReader. in))
         writer (PrintWriter. (OutputStreamWriter. out))]
     (doall
-     (for [line (my-line-seq reader)]
+     (for [line (line-seq reader)]
        (do
          (.println writer line)
          (.flush writer))))))
