@@ -157,15 +157,42 @@
 			 '~form
 			 ~form
 			 nil)
-      '.     `()
-      'new   `()
-      'var   `()
-      'loop* `()
-      'recur `()
-      'try   `()
-      'throw `()
-      'catch `()
-      'set!  `())))
+      '.     `(memo-calc ~mem
+			 '~form
+			 ~form
+			 nil)
+      'new   `(memo-calc ~mem
+			 '~form
+			 ~form
+			 nil)
+      'var   `(memo-calc ~mem
+			 '~form
+			 ~form
+			 nil)
+      'loop* `(memo-calc ~mem
+			 '~form
+			 ~form
+			 nil)
+      'recur `(memo-calc ~mem
+			 '~form
+			 ~form
+			 nil)
+      'try   `(memo-calc ~mem
+			 '~form
+			 ~form
+			 nil)
+      'throw `(memo-calc ~mem
+			 '~form
+			 ~form
+			 nil)
+      'catch `(memo-calc ~mem
+			 '~form
+			 ~form
+			 nil)
+      'set!  `(memo-calc ~mem
+			 '~form
+			 ~form
+			 nil))))
 
 (defn- min-id [node]
   (if (:childs node)
