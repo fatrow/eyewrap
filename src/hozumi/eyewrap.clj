@@ -24,15 +24,11 @@
 
 (defn macroexpand-all [form]
   (cond (elem? form) form
-	(seq? form) (try ;(if (and (symbol? (first form))
-				;  (macro? (first form)))
-			   (let [expanded (macroexpand form)]
-			     (if (= expanded nil)
-			       nil
-			       (cons (first expanded)
-				     (map macroexpand-all (rest expanded)))))
-			 ;  (cons (macroexpand-all (first form))
-				; (map macroexpand-all (rest form))))
+	(seq? form) (try (let [expanded (macroexpand form)]
+			   (if (= expanded nil)
+			     nil
+			     (cons (first expanded)
+				   (map macroexpand-all (rest expanded)))))
 			 (catch java.lang.Exception e form))
 	(coll? form) (conv-to form (map macroexpand-all form))))
 

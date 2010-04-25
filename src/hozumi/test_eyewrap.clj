@@ -54,7 +54,17 @@
 
 (deftest test-macroexpand-all
   (are [expected exp] (= expected (macroexpand-all exp))
-       '(- (+ 1 2) 3) '(-> 1 (+ 2) (- 3))))
+       '(- (+ 1 2) 3) '(-> 1 (+ 2) (- 3))
+       '(. System currentTimeMillis) '(System/currentTimeMillis)
+       '(new Widget "red") '(Widget. "red")
+       '(. Math PI) '(Math/PI)
+       '(. rnd nextInt) '(.nextInt rnd)
+       '(. (. person getAddress) getZipCode) '(.. person getAddress getZipCode)
+       '(+ 1 1) '(+ 1 1)
+       '(:a {:a 1}) '(:a {:a 1})
+       '(if (= 1 0) :a (if (= 1 1) :b nil)) '(cond (= 1 0) :a (= 1 1) :b)
+       '(a 1) '(a 1)))
+;  (is (thr)
 
 (deftest test-update-mem
   (let [m (atom {:maxid 0, :result {}})]
