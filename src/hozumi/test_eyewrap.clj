@@ -59,5 +59,7 @@
 (deftest test-update-mem
   (let [m (atom {:maxid 0, :result {}})]
     (are [expected mem form v childs] (= expected (update-mem mem form v childs))
-	 {:maxid 1, :result {1 {:id 1, :form '(+ 1 2) :out 3 :childs 2}}} @m '(+ 1 2) (+ 1 2) 2)))
+	 {:maxid 1, :result {1 {:id 1, :form '(+ 1 2) :out 3 :childs 2}}} @m '(+ 1 2) (+ 1 2) 2
+	 {:maxid 1, :result {1 {:id 1, :form '1 :out 1}}} @m '1 1 nil
+	 {:maxid 1, :result {1 {:id 1, :form ':a :out :a}}} @m ':a :a nil)))
        

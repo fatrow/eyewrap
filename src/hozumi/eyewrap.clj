@@ -62,7 +62,7 @@
 (defmacro cap [form]
   `(let [mem# (atom {:maxid 0, :result (sorted-map)})]
      (maybe-f-cap mem# ~(macroexpand-all form))
-     mem#))
+     (prs @mem#)))
 
 (declare tail-cap sp-cap)
 
