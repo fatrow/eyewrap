@@ -25,13 +25,16 @@
 
 (defn macroexpand-all [form]
   (cond (elem? form) form
-	(seq? form) (if (and (symbol? (first form))
-			     (macro? (first form)))
-		      (let [expanded (macroexpand form)]
-			(cons (first expanded)
-			      (map macroexpand-all (rest expanded))))
-		      (cons (macroexpand-all (first form))
-			    (map macroexpand-all (rest form))))
+	(seq? form) (try (if (and (symbol? (first form))
+				  (macro? (first form)))
+			   (let [expanded (macroexpand form)]
+			     (if (= expanded nil)
+			       nil
+			       (cons (first expanded)
+				     (map macroexpand-all (rest expanded)))))
+			   (cons (macroexpand-all (first form))
+				 (map macroexpand-all (rest form))))
+			 (catch java.lang.Exception e form))
 	(coll? form) (conv-to form (map macroexpand-all form))))
 
 (defn update-mem
@@ -51,7 +54,8 @@
   ([mem form v]
      `(memo-calc ~mem ~form ~v nil))
   ([mem form v childs]
-     `(let [{id# :maxid} (swap! ~mem update-mem ~form ~v ~childs)]
+     `(let [catched-v# (try ~v (catch java.lang.Exception t# t#))
+	    {id# :maxid} (swap! ~mem update-mem ~form catched-v# ~childs)]
 	(get-in @~mem [:result id# :out]))))
 
 (defn id-reverse [{result :result :as mem}]
@@ -67,26 +71,26 @@
      (maybe-f-cap mem# ~(macroexpand-all form))
      (prs @mem#)))
 
-(defmacro capf [form]
+(defmacro cap [form]
   (let [expanded (macroexpand-all form)
 	op (first expanded)
 	name (second expanded)
-	third (first (drop 2 expanded))
-	fnbodies (rest third)]
+	third (first (drop 2 expanded))]
     (let [mem (gensym "mem")]
       `(let [~mem (atom (mem-init))]
 	 ~(if (and (= 'def op)
 		   (= 'fn* (first third)))
-	    `(def ~name
-		  (fn* ~@(map (fn [arg body] (into body (list arg)))
-			      (map first fnbodies)
-			      (map #(concat `((reset! ~mem (mem-init)))
-					    %
-					    `((prs @~mem)))
-				   (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
-					(map rest fnbodies))))))
-	    `(do (maybe-f-cap mem ~(macroexpand-all form))
-		 mem))))))
+	    (let [fnbodies (rest third)]
+	      `(def ~name
+		    (fn* ~@(map (fn [arg body] (into body (list arg)))
+				(map first fnbodies)
+				(map #(concat `((reset! ~mem (mem-init)))
+					      %
+					      `((prs @~mem)))
+				     (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
+					  (map rest fnbodies)))))))
+	    `(do (maybe-f-cap ~mem ~(macroexpand-all form))
+		 (prs @~mem)))))))
 
 (declare tail-cap sp-cap)
 
@@ -134,17 +138,13 @@
       'def (let [[name [fs _ :as body]] tail]
 	     (cond (special-symbol? fs) `(def ~name (sp-cap ~mem ~body))
 		   :else `(def ~name (maybe-f-cap ~mem ~body))))
-      'fn* `(fn* ~@(map (fn [arg body] (into body (list arg)))
+      'fn* `(memo-calc ~mem
+		       '~form
+		       (fn* ~@(map (fn [arg body] (into body (list arg)))
 				   (map first tail)
 				   (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
 					(map rest tail))))
-      ;`(memo-calc ~mem
-	;	       '~form
-		;       (fn* ~@(map (fn [arg body] (into body (list arg)))
-			;	   (map first tail)
-				;   (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
-					;(map rest tail))))
-;		       ~(count tail))
+		       ~(count tail))
       'if `(memo-calc ~mem
 		      '~form
 		      (if ~@(map #(list 'maybe-f-cap mem %) tail))
