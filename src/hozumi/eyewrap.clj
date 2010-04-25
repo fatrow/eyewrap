@@ -65,29 +65,6 @@
 (defn- mem-init []
   {:maxid 0, :result (sorted-map)})
 
-(defmacro cap [form]
-  (let [expanded (macroexpand-all form)
-	op (first expanded)
-	name (second expanded)
-	third (first (drop 2 expanded))]
-    (let [mem (gensym "mem")]
-      `(let [~mem (atom (mem-init))]
-	 ~(if (and (= 'def op)
-		   (= 'fn* (first third)))
-	    (let [fnbodies (rest third)]
-	      `(def ~name
-		    (fn* ~@(map (fn [arg body] (into body (list arg)))
-				(map first fnbodies)
-				(map #(concat `((reset! ~mem (mem-init)))
-					      %
-					      `((print-node @~mem))
-					      `((get-in @~mem [:result (:maxid @~mem) :out])))
-				     (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
-					  (map rest fnbodies)))))))
-	    `(do (maybe-f-cap ~mem ~(macroexpand-all form))
-		 (print-node @~mem)
-		 (get-in @~mem [:result (:maxid @~mem) :out])))))))
-
 (declare tail-cap sp-cap)
 
 (defmacro maybe-f-cap [mem form]
@@ -227,6 +204,29 @@
 
 (defn- print-node [{:keys [maxid result]}]
   (print-node1 (first (makenode result maxid)) 0))
+
+(defmacro cap [form]
+  (let [expanded (macroexpand-all form)
+	op (first expanded)
+	name (second expanded)
+	third (first (drop 2 expanded))]
+    (let [mem (gensym "mem")]
+      `(let [~mem (atom (mem-init))]
+	 ~(if (and (= 'def op)
+		   (= 'fn* (first third)))
+	    (let [fnbodies (rest third)]
+	      `(def ~name
+		    (fn* ~@(map (fn [arg body] (into body (list arg)))
+				(map first fnbodies)
+				(map #(concat `((reset! ~mem (mem-init)))
+					      %
+					      `((print-node @~mem))
+					      `((get-in @~mem [:result (:maxid @~mem) :out])))
+				     (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
+					  (map rest fnbodies)))))))
+	    `(do (maybe-f-cap ~mem ~(macroexpand-all form))
+		 (print-node @~mem)
+		 (get-in @~mem [:result (:maxid @~mem) :out])))))))
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
