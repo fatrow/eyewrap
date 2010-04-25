@@ -59,10 +59,34 @@
 	v (vals result)]
     (assoc mem :result (apply hash-map (interleave (reverse k) v)))))
 
+(defn mem-init []
+  {:maxid 0, :result (sorted-map)})
+
 (defmacro cap [form]
-  `(let [mem# (atom {:maxid 0, :result (sorted-map)})]
+  `(let [mem# (atom (mem-init))]
      (maybe-f-cap mem# ~(macroexpand-all form))
      (prs @mem#)))
+
+(defmacro capf [form]
+  (let [expanded (macroexpand-all form)
+	op (first expanded)
+	name (second expanded)
+	third (first (drop 2 expanded))
+	fnbodies (rest third)]
+    (let [mem (gensym "mem")]
+      `(let [~mem (atom (mem-init))]
+	 ~(if (and (= 'def op)
+		   (= 'fn* (first third)))
+	    `(def ~name
+		  (fn* ~@(map (fn [arg body] (into body (list arg)))
+			      (map first fnbodies)
+			      (map #(concat `((reset! ~mem (mem-init)))
+					    %
+					    `((prs @~mem)))
+				   (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
+					(map rest fnbodies))))))
+	    `(do (maybe-f-cap mem ~(macroexpand-all form))
+		 mem))))))
 
 (declare tail-cap sp-cap)
 

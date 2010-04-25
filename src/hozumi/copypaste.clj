@@ -28,6 +28,51 @@
     map? "Map!"
     vector? "Vector!"))
 
+(use 'clojure.contrib.server-socket)
+(import (java.io BufferedReader
+                 InputStreamReader
+                 PrintWriter
+                 OutputStreamWriter))
+
+(defn my-line-seq
+  "Returns the lines of text from rdr as a lazy sequence of strings.
+  rdr must implement java.io.BufferedReader."
+  [#^java.io.BufferedReader rdr]
+  (when-let [line (.readLine rdr)]
+    (cons line (lazy-seq (line-seq rdr)))))
+
+(defn hoge [in out]
+  (let [reader (BufferedReader. (InputStreamReader. in))
+        writer (PrintWriter. (OutputStreamWriter. out))]
+    (doall
+     (for [line (my-line-seq reader)]
+       (do
+         (.println writer line)
+         (.flush writer))))))
+
+(def echo-server (ref nil))
+(def port-no 3000)
+
+(defn start-echo-server []
+  (dosync (ref-set echo-server (create-server port-no hoge))))
+
+(defn stop-echo-server []
+  (close-server @echo-server)
+  (dosync (ref-set echo-server nil)))
+
+
+(defmacro aaa [x]
+  (let [m (gensym "m")]
+    `(let [~m (atom 0)]
+       (fn [] ~(if x
+                 `(swap! ~m inc)
+		 `(swap! ~m dec))))))
+(defmacro aaa [x]
+  `(let [m# (atom 0)]
+     (fn []
+       ~(if x
+	  `(reset! m# inc)
+	  `(reset! m# dec)))))
 
 (defn touch [coll target-index]
 ;         [0 1 2 3 4]  2
