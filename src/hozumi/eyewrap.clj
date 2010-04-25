@@ -1,7 +1,6 @@
-
 (ns
   #^{:author "Takahiro Hozumi"
-     :doc "Execution observe tool."}
+     :doc "Execute observetion tool."}
   hozumi.eyewrap
   (:use [clojure.contrib.pprint])
   (:use [clojure.contrib.seq-utils :only (flatten)]))
@@ -37,7 +36,7 @@
 			 (catch java.lang.Exception e form))
 	(coll? form) (conv-to form (map macroexpand-all form))))
 
-(defn update-mem
+(defn- update-mem
   ([mem form v childs]
      (let [newid (inc (:maxid mem))
 	   ans1 (if childs
@@ -58,12 +57,12 @@
 	    {id# :maxid} (swap! ~mem update-mem ~form catched-v# ~childs)]
 	(get-in @~mem [:result id# :out]))))
 
-(defn id-reverse [{result :result :as mem}]
+(defn- id-reverse [{result :result :as mem}]
   (let [k (keys result)
 	v (vals result)]
     (assoc mem :result (apply hash-map (interleave (reverse k) v)))))
 
-(defn mem-init []
+(defn- mem-init []
   {:maxid 0, :result (sorted-map)})
 
 (defmacro cap [form]
@@ -81,11 +80,13 @@
 				(map first fnbodies)
 				(map #(concat `((reset! ~mem (mem-init)))
 					      %
-					      `((prs @~mem)))
+					      `((print-node @~mem))
+					      `((get-in @~mem [:result (:maxid @~mem) :out])))
 				     (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
 					  (map rest fnbodies)))))))
 	    `(do (maybe-f-cap ~mem ~(macroexpand-all form))
-		 (prs @~mem)))))))
+		 (print-node @~mem)
+		 (get-in @~mem [:result (:maxid @~mem) :out])))))))
 
 (declare tail-cap sp-cap)
 
@@ -213,19 +214,19 @@
 				     (dec minid)
 				     (dec need-num)))))))))
 
-(defn- prs1 [{:keys [form out childs child-node]} level]
+(defn- print-node1 [{:keys [form out childs child-node]} level]
   (if (= form out)
     :const
     (do (println level ": + " form)
 	(let [uptodate-form (atom form)]
 	  (doseq [{cform :form, cout :out, :as child} child-node]
-	    (if (not= :const (prs1 child (inc level)))
+	    (if (not= :const (print-node1 child (inc level)))
 	      (println level ": ->" (swap! uptodate-form
 					   #(replace {cform cout} %))))))
 	(println level ": =>" out))))
 
-(defn prs [{:keys [maxid result]}]
-  (prs1 (first (makenode result maxid)) 0))
+(defn- print-node [{:keys [maxid result]}]
+  (print-node1 (first (makenode result maxid)) 0))
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
