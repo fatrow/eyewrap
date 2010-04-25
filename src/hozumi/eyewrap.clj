@@ -24,19 +24,19 @@
 
 (defn macroexpand-all [form]
   (cond (elem? form) form
-	(seq? form) (try (if (and (symbol? (first form))
-				  (macro? (first form)))
+	(seq? form) (try ;(if (and (symbol? (first form))
+				;  (macro? (first form)))
 			   (let [expanded (macroexpand form)]
 			     (if (= expanded nil)
 			       nil
 			       (cons (first expanded)
 				     (map macroexpand-all (rest expanded)))))
-			   (cons (macroexpand-all (first form))
-				 (map macroexpand-all (rest form))))
+			 ;  (cons (macroexpand-all (first form))
+				; (map macroexpand-all (rest form))))
 			 (catch java.lang.Exception e form))
 	(coll? form) (conv-to form (map macroexpand-all form))))
 
-(defn- update-mem
+(defn update-mem
   ([mem form v childs]
      (let [newid (inc (:maxid mem))
 	   ans1 (if childs
@@ -57,12 +57,12 @@
 	    {id# :maxid} (swap! ~mem update-mem ~form catched-v# ~childs)]
 	(get-in @~mem [:result id# :out]))))
 
-(defn- id-reverse [{result :result :as mem}]
+(defn id-reverse [{result :result :as mem}]
   (let [k (keys result)
 	v (vals result)]
     (assoc mem :result (apply hash-map (interleave (reverse k) v)))))
 
-(defn- mem-init []
+(defn mem-init []
   {:maxid 0, :result (sorted-map)})
 
 (declare tail-cap sp-cap)
@@ -168,12 +168,12 @@
 			 ~form
 			 nil))))
 
-(defn- min-id [node]
+(defn min-id [node]
   (if (:childs node)
     (apply min (:id node) (map min-id (:child-node node)))
     (:id node)))
 
-(defn- makenode
+(defn makenode
   ([result id]
      (makenode result id 1))
   ([result id need-num]
@@ -191,7 +191,7 @@
 				     (dec minid)
 				     (dec need-num)))))))))
 
-(defn- print-node1 [{:keys [form out childs child-node]} level]
+(defn print-node1 [{:keys [form out childs child-node]} level]
   (if (= form out)
     :const
     (do (println level ": + " form)
@@ -202,7 +202,7 @@
 					   #(replace {cform cout} %))))))
 	(println level ": =>" out))))
 
-(defn- print-node [{:keys [maxid result]}]
+(defn print-node [{:keys [maxid result]}]
   (print-node1 (first (makenode result maxid)) 0))
 
 (defmacro cap [form]
