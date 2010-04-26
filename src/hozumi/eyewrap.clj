@@ -182,7 +182,7 @@
 		     (cons (assoc current
 			     :child-node child-node)
 			   (makenode result
-				     (dec minid)
+				     (do (println minid)(dec minid))
 				     (dec need-num)))))))))
 
 (defn print-node1 [{:keys [form out childs child-node]} level]
@@ -199,28 +199,36 @@
 (defn print-node [{:keys [maxid result]}]
   (print-node1 (first (makenode result maxid)) 0))
 
-(defmacro cap [form]
-  (let [expanded (macroexpand-all form)
-	op (first expanded)
-	name (second expanded)
-	third (first (drop 2 expanded))]
-    (let [mem (gensym "mem")]
-      `(let [~mem (atom (mem-init))]
-	 ~(if (and (= 'def op)
-		   (= 'fn* (first third)))
-	    (let [fnbodies (rest third)]
-	      `(def ~name
-		    (fn* ~@(map (fn [arg body] (into body (list arg)))
-				(map first fnbodies)
-				(map #(concat `((reset! ~mem (mem-iniot)))
-					      %
-					      `((print-node @~mem))
-					      `((get-in @~mem [:result (:maxid @~mem) :out])))
-				     (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
-					  (map rest fnbodies)))))))
-	    `(do (maybe-f-cap ~mem ~(macroexpand-all form))
-		 (print-node @~mem)
-		 (get-in @~mem [:result (:maxid @~mem) :out])))))))
+(defmacro cap
+  ([form]
+     `(let [mem# (atom (mem-init))]
+	(maybe-f-cap mem# ~(macroexpand-all form))
+	(print-node @mem#)
+	(get-in @mem# [:result (:maxid @mem#) :out])))
+  ([caller form]
+     (let [expanded (macroexpand-all form)
+	   op (first expanded)
+	   name (second expanded)
+	   third (first (drop 2 expanded))]
+       (let [mem (gensym "mem")]
+	 `(let [~mem (atom (mem-init))]
+	    ~(if (and (= 'def op)
+		      (= 'fn* (first third)))
+	       (let [fnbodies (rest third)]
+		 `(do (def ~name
+			   (fn* ~@(map (fn [arg body] (into body (list arg)))
+				       (map first fnbodies)
+				       (map (fn [s] (map #(list 'maybe-f-cap mem %) s))
+					    (map rest fnbodies)))))
+		      (defn ~caller
+			([] (print-node @~mem))
+			([x#] (condp = x#
+				:p (pprint @~mem)
+				:c (do (reset! ~mem (mem-init))
+				       @~mem)
+				:else (do (reset! ~mem (mem-init))
+				       @~mem))))))
+	       (cap ~form)))))))
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))

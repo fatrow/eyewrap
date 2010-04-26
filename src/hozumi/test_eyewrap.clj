@@ -71,7 +71,7 @@
        1   '(m-identity 1)
        [1] '(m-identity [1])
        {:a 1} '(m-identity {:a 1}))
-  (testing "don't thrown Exception"
+  (testing "don't throw Exception"
     (is (not= nil (macroexpand-all '(condp = x :a 1 :b 2))))))
 
 (deftest test-update-mem
