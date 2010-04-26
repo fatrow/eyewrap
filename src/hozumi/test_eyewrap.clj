@@ -52,6 +52,8 @@
        {:a 1}   {:b 2} (seq {:a 1})
        #{:a :b} #{} (seq #{:a :b})))
 
+(defmacro m-identity [x] x)
+
 (deftest test-macroexpand-all
   (are [expected exp] (= expected (macroexpand-all exp))
        '(- (+ 1 2) 3) '(-> 1 (+ 2) (- 3))
@@ -63,8 +65,14 @@
        '(+ 1 1) '(+ 1 1)
        '(:a {:a 1}) '(:a {:a 1})
        '(if (= 1 0) :a (if (= 1 1) :b nil)) '(cond (= 1 0) :a (= 1 1) :b)
-       '(a 1) '(a 1)))
-;  (is (thr)
+       '(a 1) '(a 1)
+       '(list? '(-> 1 inc)) '(list? '(-> 1 inc))
+       :a  '(m-identity :a)
+       1   '(m-identity 1)
+       [1] '(m-identity [1])
+       {:a 1} '(m-identity {:a 1}))
+  (testing "don't thrown Exception"
+    (is (not= nil (macroexpand-all '(condp = x :a 1 :b 2))))))
 
 (deftest test-update-mem
   (let [m (atom {:maxid 0, :result {}})]

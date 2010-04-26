@@ -25,10 +25,11 @@
 (defn macroexpand-all [form]
   (cond (elem? form) form
 	(seq? form) (try (let [expanded (macroexpand form)]
-			   (if (= expanded nil)
-			     nil
-			     (cons (first expanded)
-				   (map macroexpand-all (rest expanded)))))
+			   (cond (elem? expanded)  expanded
+				 (= 'quote (first expanded)) expanded
+				 (seq? expanded)  (cons (first expanded)
+							(map macroexpand-all (rest expanded)))
+				 (coll? expanded) (macroexpand-all expanded)))
 			 (catch java.lang.Exception e form))
 	(coll? form) (conv-to form (map macroexpand-all form))))
 
@@ -143,10 +144,7 @@
 			 '~form
 			 ~form
 			 nil)
-      'recur `(memo-calc ~mem
-			 '~form
-			 ~form
-			 nil)
+      'recur form
       'try   `(memo-calc ~mem
 			 '~form
 			 ~form
@@ -214,7 +212,7 @@
 	      `(def ~name
 		    (fn* ~@(map (fn [arg body] (into body (list arg)))
 				(map first fnbodies)
-				(map #(concat `((reset! ~mem (mem-init)))
+				(map #(concat `((reset! ~mem (mem-iniot)))
 					      %
 					      `((print-node @~mem))
 					      `((get-in @~mem [:result (:maxid @~mem) :out])))
