@@ -3,7 +3,7 @@
   #^{:author "Takahiro Hozumi"
      :doc "Code observation tool."}
   hozumi.eyewrap.test-eyewrap
-  (:use [hozumi.eyewrap])
+  (:use [hozumi.eyewrap] :reload-all)
   (:use [clojure.test]))
 
 (deftest test-elem? 
@@ -74,10 +74,45 @@
   (testing "don't throw Exception"
     (is (not= nil (macroexpand-all '(condp = x :a 1 :b 2))))))
 
+
+(deftest test-allocate-id
+  (let [mem (atom (mem-init))]
+    (is (= {:maxid 1, :result {:child {1 {}}}, :parent-table {1 nil}}
+	   (swap! mem allocate-id nil)))
+    (is (= {:maxid 2, :result {:child {1 {:child {2 {}}}}}, :parent-table {1 nil, 2 1}}
+	   (swap! mem allocate-id 1)))
+    (is (= {:maxid 3, :result {:child {1 {:child {2 {:child {3 {}}}}}}},:parent-table {1 nil, 2 1, 3 2}}
+	   (swap! mem allocate-id 2)))))
+
 (deftest test-update-mem
-  (let [m (atom {:maxid 0, :result {}})]
-    (are [expected mem form v childs] (= expected (update-mem mem form v childs))
-	 {:maxid 1, :result {1 {:id 1, :form '(+ 1 2) :out 3 :childs 2}}} @m '(+ 1 2) (+ 1 2) 2
-	 {:maxid 1, :result {1 {:id 1, :form '1 :out 1}}} @m '1 1 nil
-	 {:maxid 1, :result {1 {:id 1, :form ':a :out :a}}} @m ':a :a nil)))
-       
+  (let [mem (atom (mem-init))]
+    (is (= {:maxid 1, :result {:child {1 {}}}, :parent-table {1 nil}}
+	   (swap! mem allocate-id nil)))
+    (is (= {:maxid 2,
+	    :result {:child {1 {:child {2 {:id 2, :form 1, :out 1}}}}},
+	    :parent-table {1 nil, 2 1}}
+	   (swap! mem update-mem '1 1 1)))
+    (is (= {:maxid 3,
+	    :result {:child {1 {:child {2 {:id 2, :form 1, :out 1}
+					3 {:id 3, :form 2, :out 2}}}}},
+	    :parent-table {1 nil, 2 1, 3 1}}
+	   (swap! mem update-mem '2 2 1)))
+    (is (= {:maxid 3,
+	    :result {:child {1 {:id 1, :form '(+ 1 2), :out 3,
+				:child {2 {:id 2, :form 1, :out 1}
+					3 {:id 3, :form 2, :out 2}}}}},
+	    :parent-table {1 nil, 2 1, 3 1}}
+	   (swap! mem update-mem-existing-id '(+ 1 2) 3 1)))))
+
+(deftest test-get-idpath
+  (are [expected parent-table id] (= expected (get-idpath parent-table id))
+       [] {} nil
+       [1] {1 nil} 1
+       [1 2] {1 nil, 2 1} 2
+       [1 3] {1 nil, 2 1, 3 1} 3
+       [1 2 4] {1 nil, 2 1, 3 1, 4 2} 4
+       [1 2 4 5] {1 nil, 2 1, 3 1, 4 2, 5 4} 5))
+
+
+
+
