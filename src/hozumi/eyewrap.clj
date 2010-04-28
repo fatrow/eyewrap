@@ -95,7 +95,6 @@
      (swap! ~mem update-mem-existing-id ~form catched-v# ~id-sym)
      (get-in @~mem access-vec#)))
 
-
 (defn id-reverse [{result :result :as mem}]
   (let [k (keys result)
 	v (vals result)]
@@ -149,7 +148,7 @@
     (let [newid-sym (gensym "id")]
       `(let [~newid-sym (:maxid (swap! ~mem allocate-id
 				       ~parent-id-sym))]
-	 (condp = head
+	 ~(condp = head
 	   'let* (let [binds (second form)
 		       body (drop 2 form)
 		       newbinds (vec (interleave (take-nth 2 binds)
@@ -161,19 +160,13 @@
 					   '~form
 					   ~code
 					   ~newid-sym))
-      
 	   ;;todo memo-calc ???
-	   'def (let [[name [fs _ :as body]] tail]
-		  (cond (special-symbol? fs) `(memo-calc-existing-id
-					       ~mem
-					       (def ~name
-						    (sp-cap ~mem ~body ~parent-id-sym newid-sym))
-					       ~newid-sym)
-			:else `(memo-calc-existing-id
+	   'def (let [[var-name [fs _ :as body]] tail]
+		  `(memo-calc-existing-id
 				~mem
 				'~form
-				(def ~name (maybe-f-cap ~mem ~body ~newid-sym))
-				~newid-sym)))
+				(def ~var-name (maybe-f-cap ~mem ~body ~newid-sym))
+				~newid-sym))
 	   'fn* `(memo-calc-existing-id
 		  ~mem
 		  '~form
@@ -258,7 +251,7 @@
     :const
     (do (println level ": + " form)
 	(let [uptodate-form (atom form)]
-	  (doseq [{cform :form, cout :out, :as achild} (vals child)]
+	  (doseq [{cform :form, cout :out, :as achild} (reverse (vals child))]
 	    (if (not= :const (print-node1 achild (inc level)))
 	      (println level ": ->" (swap! uptodate-form
 					   #(replace {cform cout} %))))))
