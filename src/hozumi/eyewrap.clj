@@ -261,12 +261,7 @@
 	    ~(if (and (= 'def op)
 		      (= 'fn* (first third)))
 	       (let [fnbodies (rest third)]
-		 `(do (def ~name
-			   (fn* ~@(map (fn [arg body] (into body (list arg)))
-				       (map first fnbodies)
-				       (map (fn [s] (map #(list 'maybe-f-cap mem % nil) s))
-					    (map rest fnbodies)))))
-		      (defn ~caller
+		 `(do (defn ~caller
 			([] (print-node @~mem 0))
 			([x#] (cond (number? x#) (print-node @~mem x#)
 				    :else (condp = x#
@@ -275,7 +270,12 @@
 					    :c (do (reset! ~mem (mem-init))
 						   @~mem)
 					    :else (do (reset! ~mem (mem-init))
-						      @~mem)))))))
+						      @~mem)))))
+		      (def ~name
+			   (fn* ~@(map (fn [arg body] (into body (list arg)))
+				       (map first fnbodies)
+				       (map (fn [s] (map #(list 'maybe-f-cap mem % nil) s))
+					    (map rest fnbodies)))))))
 	       `(cap ~form)))))))
 
 (fn* ([x] (inc x) (dec x))

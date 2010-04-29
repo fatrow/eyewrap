@@ -1,15 +1,162 @@
-# capture-clj
+h1. eyewrap
 
-FIXME: write description
+h2. Observing execution of Clojure code.
+Note. code is completely macroexpanded.
 
-## Usage
+h1. Usage
 
-FIXME: write
+<pre>
+user> (use 'hozumi.eyewrap)
+nil
+</ pre>
+
+h2. Normal code
+
+*(cap <code>)*
+
+<pre>
+user> (cap (+ 1 2))
+0 : +  (+ 1 2)
+0 : => 3
+3
+</ pre>
+
+<pre>
+user> (cap (* 2 (+ (- 3 8) 4)))
+0 : +  (* 2 (+ (- 3 8) 4))
+1 : +  (+ (- 3 8) 4)
+2 : +  (- 3 8)
+2 : => -5
+1 : -> (+ -5 4)
+1 : => -1
+0 : -> (* 2 -1)
+0 : => -2
+-2
+</ pre>
+
+
+h2. With defn
+
+*(cap <caller name> (defn ... <code>)*
+
+<pre>
+user> (cap ppp (defn touch [coll target-index]
+		 (-> [(coll target-index)]
+		     (into (subvec coll 0 target-index))
+		     (into (subvec coll (inc target-index))))))
+#'user/touch
+</ pre>
+
+ppp turn to be function.
+<pre>
+user> ppp
+#<user$eval__2153$ppp__2209 user$eval__2153$ppp__2209@4ce1e2b3>
+</ pre>
+
+still empty
+<pre>
+user> (ppp)
+:const
+</ pre>
+
+Once defned function has been called, ppp will print trace log.
+<pre>
+user> (touch [1 2 3 4] 2)
+[3 1 2 4]
+</ pre>
+<pre>
+user> (ppp)
+0 : +  (into (into [(coll target-index)] (subvec coll 0 target-index)) (subvec coll (inc target-index)))
+1 : +  (into [(coll target-index)] (subvec coll 0 target-index))
+2 : +  [(coll target-index)]
+3 : +  (coll target-index)
+4 : +  target-index
+4 : => 2
+3 : -> (coll 2)
+3 : => 3
+2 : -> [3]
+2 : => [3]
+1 : -> (into [3] (subvec coll 0 target-index))
+2 : +  (subvec coll 0 target-index)
+3 : +  coll
+3 : => [1 2 3 4]
+2 : -> (subvec [1 2 3 4] 0 target-index)
+3 : +  target-index
+3 : => 2
+2 : -> (subvec [1 2 3 4] 0 2)
+2 : => [1 2]
+1 : -> (into [3] [1 2])
+1 : => [3 1 2]
+0 : -> (into [3 1 2] (subvec coll (inc target-index)))
+1 : +  (subvec coll (inc target-index))
+2 : +  coll
+2 : => [1 2 3 4]
+1 : -> (subvec [1 2 3 4] (inc target-index))
+2 : +  (inc target-index)
+3 : +  target-index
+3 : => 2
+2 : -> (inc 2)
+2 : => 3
+1 : -> (subvec [1 2 3 4] 3)
+1 : => [4]
+0 : -> (into [3 1 2] [4])
+0 : => [3 1 2 4]
+[3 1 2 4]
+user> 
+</ pre>
+
+<pre>
+user> (touch [:a :b :c] 2)
+[:c :a :b]
+</ pre>
+<pre>
+user> (ppp)
+0 : +  (into (into [(coll target-index)] (subvec coll 0 target-index)) (subvec coll (inc target-index)))
+1 : +  (into [(coll target-index)] (subvec coll 0 target-index))
+2 : +  [(coll target-index)]
+3 : +  (coll target-index)
+4 : +  target-index
+4 : => 2
+3 : -> (coll 2)
+3 : => :c
+2 : -> [:c]
+2 : => [:c]
+1 : -> (into [:c] (subvec coll 0 target-index))
+2 : +  (subvec coll 0 target-index)
+3 : +  coll
+3 : => [:a :b :c]
+2 : -> (subvec [:a :b :c] 0 target-index)
+3 : +  target-index
+3 : => 2
+2 : -> (subvec [:a :b :c] 0 2)
+2 : => [:a :b]
+1 : -> (into [:c] [:a :b])
+1 : => [:c :a :b]
+0 : -> (into [:c :a :b] (subvec coll (inc target-index)))
+1 : +  (subvec coll (inc target-index))
+2 : +  coll
+2 : => [:a :b :c]
+1 : -> (subvec [:a :b :c] (inc target-index))
+2 : +  (inc target-index)
+3 : +  target-index
+3 : => 2
+2 : -> (inc 2)
+2 : => 3
+1 : -> (subvec [:a :b :c] 3)
+1 : => []
+0 : -> (into [:c :a :b] [])
+0 : => [:c :a :b]
+[:c :a :b]
+user>
+</ pre>
+
+You can print preview trace log with (ppp 1) because trace log is cached.
+
 
 ## Installation
 
-FIXME: write
+
 
 ## License
 
-FIXME: write
+Eclipse Public License - v 1.0
