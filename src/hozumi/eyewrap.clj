@@ -1,6 +1,6 @@
 (ns
   #^{:author "Takahiro Hozumi"
-     :doc "Execute observetion tool."}
+     :doc "code observetion tool."}
   hozumi.eyewrap
   (:use [clojure.contrib.pprint])
   (:use [clojure.contrib.seq-utils :only (flatten)]))
@@ -78,7 +78,7 @@
 
 (defmacro memo-calc
   [mem form v parent-id-sym]
-  `(let [catched-v# (try ~v (catch java.lang.Exception e# e#))
+  `(let [catched-v# ~v;(try ~v (catch java.lang.Exception e# e#))
 	 {id# :maxid, result# :result} (swap! ~mem update-mem ~form catched-v# ~parent-id-sym)
 	 access-vec# (vec (conj (vec (interleave (repeat :child)
 						 (get-idpath (:parent-table @~mem) id#)))

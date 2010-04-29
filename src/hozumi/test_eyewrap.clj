@@ -67,10 +67,10 @@
        '(if (= 1 0) :a (if (= 1 1) :b nil)) '(cond (= 1 0) :a (= 1 1) :b)
        '(a 1) '(a 1)
        '(list? '(-> 1 inc)) '(list? '(-> 1 inc))
-       :a  '(m-identity :a)
-       1   '(m-identity 1)
-       [1] '(m-identity [1])
-       {:a 1} '(m-identity {:a 1}))
+       :a  `(m-identity :a)
+       1   `(m-identity 1)
+       [1] `(m-identity [1])
+       {:a 1} `(m-identity {:a 1}))
   (testing "don't throw Exception"
     (is (not= nil (macroexpand-all '(condp = x :a 1 :b 2))))))
 
@@ -112,7 +112,3 @@
        [1 3] {1 nil, 2 1, 3 1} 3
        [1 2 4] {1 nil, 2 1, 3 1, 4 2} 4
        [1 2 4 5] {1 nil, 2 1, 3 1, 4 2, 5 4} 5))
-
-
-
-
