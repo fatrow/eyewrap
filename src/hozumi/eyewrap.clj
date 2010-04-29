@@ -225,18 +225,21 @@
 	data))
     out))
 
+(defn my-print [level typ form]
+  (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
+      (println form)))
+
 (defn print-node1 [{:keys [id form out child]} level]
   (if (= form out)
     :const
-    (do (println level ": + " form)
+    (do (my-print level "+" form)
 	(let [uptodate-form (atom form)
 	      limited-size-v (lazy-chked-v out)]
 	  (doseq [{cform :form, cout :out, :as achild} (reverse (vals child))]
 	    (let [child-out (print-node1 achild (inc level))]
 	      (if (not= :const child-out)
-		(println level ": ->" (swap! uptodate-form
-					     #(replace {cform child-out} %))))))
-	  (println level ": =>" limited-size-v)
+		(my-print level "->" (swap! uptodate-form #(replace {cform child-out} %))))))
+	  (my-print level "=>" limited-size-v)
 	  limited-size-v))))
 
 (defn print-node [{:keys [result]} n]
