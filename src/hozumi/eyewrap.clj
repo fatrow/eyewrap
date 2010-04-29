@@ -95,11 +95,6 @@
      (swap! ~mem update-mem-existing-id ~form catched-v# ~id-sym)
      (get-in @~mem access-vec#)))
 
-(defn id-reverse [{result :result :as mem}]
-  (let [k (keys result)
-	v (vals result)]
-    (assoc mem :result (apply hash-map (interleave (reverse k) v)))))
-
 (defn mem-init []
   {:maxid 0, :result (sorted-map), :parent-table {}})
 
@@ -222,29 +217,6 @@
 			      '~form
 			      ~form
 			      nil))))))
-    
-(defn min-id [node]
-  (if (:childs node)
-    (apply min (:id node) (map min-id (:child-node node)))
-    (:id node)))
-
-(defn makenode
-  ([result id]
-     (makenode result id 1))
-  ([result id need-num]
-     (if (zero? need-num) ()
-	 (let [current (result id)
-	       childs-num (:childs current)]
-	   (cond
-	     (nil? childs-num) (cons current
-				     (makenode result (dec id) (dec need-num)))
-	     :else (let [child-node (reverse (makenode result (dec id) childs-num))
-			 minid (apply min (map min-id child-node))]
-		     (cons (assoc current
-			     :child-node child-node)
-			   (makenode result
-				     (do (println minid)(dec minid))
-				     (dec need-num)))))))))
 
 (defn print-node1 [{:keys [id form out child]} level]
   (if (= form out)
