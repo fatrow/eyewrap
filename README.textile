@@ -3,6 +3,11 @@ h1. eyewrap
 Observing execution of Clojure code.
 Note. code is completely macroexpanded.
 
+h1. Installation
+
+leiningen
+[eyewrap "0.5.0"]
+
 h1. Usage
 
 <pre class="console">
@@ -157,14 +162,8 @@ user>
 You can print preview trace log by calling (ppp 1) because trace log is cached.
 
 h2. Not support
-recur, etc...
 
-
-h2. Installation
-
-leiningen
-[eyewrap "0.5.0"]
-
+ *recur, etc...* 
 
 h3. License
 
