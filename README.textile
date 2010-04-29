@@ -1,7 +1,7 @@
 h1. eyewrap
 
 Observing execution of Clojure code.
-Code is completely macroexpanded and all Exception is catched by eyewrap.
+Code is completely macroexpanded and all exception is catched by eyewrap.
 
 h1. Installation
 
@@ -39,6 +39,20 @@ user> (cap (* 2 (+ (- 3 8) 4)))
 -2
 </pre>
 
+All exception is catched by cap fortunately or unfortunately.
+
+<pre class="console">
+user> (cap (+ 1 3 (- 2 3) (/ 2 0)))
+0 : +  (+ 1 3 (- 2 3) (/ 2 0))
+1 : +  (- 2 3)
+1 : => -1
+0 : -> (+ 1 3 -1 (/ 2 0))
+1 : +  (/ 2 0)
+1 : => #<ArithmeticException java.lang.ArithmeticException: Divide by zero>
+0 : -> (+ 1 3 -1 #<ArithmeticException java.lang.ArithmeticException: Divide by zero>)
+0 : => #<ClassCastException java.lang.ClassCastException: java.lang.ArithmeticException cannot be cast to java.lang.Number>
+#<ClassCastException java.lang.ClassCastException: java.lang.ArithmeticException cannot be cast to java.lang.Number>
+</ pre>
 
 h2. With defn
 
