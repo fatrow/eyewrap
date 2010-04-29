@@ -12,7 +12,7 @@ nil
 
 h2. Normal code
 
-*(cap <code>)*
+ *(cap code)* 
 
 <pre class="console">
 user> (cap (+ 1 2))
@@ -37,7 +37,7 @@ user> (cap (* 2 (+ (- 3 8) 4)))
 
 h2. With defn
 
-*(cap <caller name> (defn ... <code>)*
+ *(cap name (defn ... code)* 
 
 <pre class="console">
 user> (cap ppp (defn touch [coll target-index]
