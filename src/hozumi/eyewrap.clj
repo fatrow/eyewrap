@@ -239,14 +239,14 @@
 	  (println level ": =>" limited-size-v)
 	  limited-size-v))))
 
-(defn print-node [{:keys [result]} need-num]
-  (print-node1 (take need-num (vals (:child result))) 0))
+(defn print-node [{:keys [result]} n]
+  (print-node1 (nth (vals (:child result)) n) 0))
 
 (defmacro cap
   ([form]
      `(let [mem# (atom (mem-init))]
 	(maybe-f-cap mem# ~(macroexpand-all form) nil)
-	(print-node @mem# 1)
+	(print-node @mem# 0)
 	(get-in (:result @mem#)
 		(vec (conj (vec (interleave (repeat :child)
 					    (get-idpath (:parent-table @mem#) 1)))
@@ -267,13 +267,15 @@
 				       (map (fn [s] (map #(list 'maybe-f-cap mem % nil) s))
 					    (map rest fnbodies)))))
 		      (defn ~caller
-			([] (print-node @~mem 1))
-			([x#] (condp = x#
-				:p (pprint @~mem)
-				:c (do (reset! ~mem (mem-init))
-				       @~mem)
-				:else (do (reset! ~mem (mem-init))
-					  @~mem))))))
+			([] (print-node @~mem 0))
+			([x#] (cond (number? x#) (print-node @~mem x#)
+				    :else (condp = x#
+					    :p (print-node @~mem)
+					    :pp (pprint @~mem)
+					    :c (do (reset! ~mem (mem-init))
+						   @~mem)
+					    :else (do (reset! ~mem (mem-init))
+						      @~mem)))))))
 	       `(cap ~form)))))))
 
 (fn* ([x] (inc x) (dec x))
