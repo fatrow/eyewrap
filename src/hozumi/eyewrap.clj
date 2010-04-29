@@ -78,7 +78,7 @@
 
 (defmacro memo-calc
   [mem form v parent-id-sym]
-  `(let [catched-v# ~v;(try ~v (catch java.lang.Exception e# e#))
+  `(let [catched-v# (try ~v (catch java.lang.Exception e# e#))
 	 {id# :maxid, result# :result} (swap! ~mem update-mem ~form catched-v# ~parent-id-sym)
 	 access-vec# (vec (conj (vec (interleave (repeat :child)
 						 (get-idpath (:parent-table @~mem) id#)))
@@ -91,7 +91,7 @@
 				(conj (vec (interleave (repeat :child)
 						       (get-idpath (:parent-table @~mem) ~id-sym)))
 				      :out)))
-	 catched-v# ~v];(try ~v (catch java.lang.Exception e# e#))]
+	 catched-v# (try ~v (catch java.lang.Exception e# e#))]
      (swap! ~mem update-mem-existing-id ~form catched-v# ~id-sym)
      (get-in @~mem access-vec#)))
 
