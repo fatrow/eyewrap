@@ -164,10 +164,10 @@ You can print preview trace log by calling (ppp 1), because trace log is cached.
 (ppp :c)     : clear cache.
 (ppp :pp)    : print internal data structure.
 
-h2. Not support
-
+h1. Not support
  *recur, etc...* 
 
+ 
 h3. License
 
 Eclipse Public License - v 1.0
