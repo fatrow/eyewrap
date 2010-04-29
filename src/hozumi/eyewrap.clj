@@ -32,7 +32,7 @@
 				 (coll? expanded) (macroexpand-all expanded)))
 			 (catch java.lang.Exception e form))
 	(coll? form) (conv-to form (map macroexpand-all form))))
-
+    
 (defn get-idpath1 [parent-table path]
   (loop [path path]
     (let [parent-id (parent-table (first path))]
@@ -98,8 +98,6 @@
 (defn mem-init []
   {:maxid 0, :result (sorted-map), :parent-table {}})
 
-(declare tail-cap sp-cap)
-
 (defmacro maybe-f-cap [mem form parent-id-sym]
   (if (elem? form)
     `(memo-calc ~mem '~form ~form ~parent-id-sym)
@@ -155,7 +153,6 @@
 					   '~form
 					   ~code
 					   ~newid-sym))
-	   ;;todo memo-calc ???
 	   'def (let [[var-name [fs _ :as body]] tail]
 		  `(memo-calc-existing-id
 				~mem
@@ -218,16 +215,29 @@
 			      ~form
 			      nil))))))
 
+(def *max-print-size* 100)
+
+(defn lazy-chked-v [out]
+  (if (= clojure.lang.LazySeq (type out))
+    (let [data (take (+ 1 *max-print-size*) out)]
+      (if (= (+ 1 *max-print-size*) (count data))
+	(concat data ['...LazySeq...])
+	data))
+    out))
+
 (defn print-node1 [{:keys [id form out child]} level]
   (if (= form out)
     :const
     (do (println level ": + " form)
-	(let [uptodate-form (atom form)]
+	(let [uptodate-form (atom form)
+	      limited-size-v (lazy-chked-v out)]
 	  (doseq [{cform :form, cout :out, :as achild} (reverse (vals child))]
-	    (if (not= :const (print-node1 achild (inc level)))
-	      (println level ": ->" (swap! uptodate-form
-					   #(replace {cform cout} %))))))
-	(println level ": =>" out))))
+	    (let [child-out (print-node1 achild (inc level))]
+	      (if (not= :const child-out)
+		(println level ": ->" (swap! uptodate-form
+					     #(replace {cform child-out} %))))))
+	  (println level ": =>" limited-size-v)
+	  limited-size-v))))
 
 (defn print-node [{:keys [result]}]
   (print-node1 (first (vals (:child result))) 0))
@@ -246,7 +256,7 @@
 	   op (first expanded)
 	   name (second expanded)
 	   third (first (drop 2 expanded))]
-       (let [mem (gensym "mem")]
+       (let [mem (gensym "mem")]	     
 	 `(let [~mem (atom (mem-init))]
 	    ~(if (and (= 'def op)
 		      (= 'fn* (first third)))
@@ -268,12 +278,3 @@
 
 (fn* ([x] (inc x) (dec x))
      ([x y] (+ x y) (- x y)))
-
-;(([x] (inc x) (dec x))
-; ([x y] (+ x y) (- x y)))
-
-;([1 2] (:a :b) (:c :d)) ([3 4] (:e :f) (:g :h))
-
-;(([1 2] (macro1 (:a :b)) (macro1 (:c :d)))
-; ([3 4] (macro1 (:e :f)) (macro1 (:g :h))))
-

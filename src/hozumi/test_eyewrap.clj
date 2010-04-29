@@ -112,3 +112,14 @@
        [1 3] {1 nil, 2 1, 3 1} 3
        [1 2 4] {1 nil, 2 1, 3 1, 4 2} 4
        [1 2 4 5] {1 nil, 2 1, 3 1, 4 2, 5 4} 5))
+
+(deftest test-cap
+  (do (is (= 3 (cap (+ 1 2))))
+      (is (= 89 (cap (+ (- 1 2) (* 3 (+ 4 2) 5)))))
+      (cap p (defn touch [coll target-index]
+	       (-> [(coll target-index)]
+		   (into (subvec coll 0 target-index))
+		   (into (subvec coll (inc target-index))))))
+      (is (= [3 1 2 4 5] (touch [1 2 3 4 5] 2)))
+      (testing "infinity lazy seq"
+	(is (= (seq [1 2]) (cap (take 2 (cycle [1 2 3]))))))))
