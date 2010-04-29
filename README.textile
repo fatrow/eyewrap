@@ -48,22 +48,26 @@ user> (cap ppp (defn touch [coll target-index]
 </pre>
 
 ppp turn to be function.
+
 <pre class="console">
 user> ppp
 #<user$eval__2153$ppp__2209 user$eval__2153$ppp__2209@4ce1e2b3>
 </pre>
 
 still empty
+
 <pre class="console">
 user> (ppp)
 :const
 </pre>
 
 Once defned function has been called, ppp will print trace log.
+
 <pre class="console">
 user> (touch [1 2 3 4] 2)
 [3 1 2 4]
 </pre>
+
 <pre class="console">
 user> (ppp)
 0 : +  (into (into [(coll target-index)] (subvec coll 0 target-index)) (subvec coll (inc target-index)))
@@ -152,6 +156,8 @@ user>
 
 You can print preview trace log with (ppp 1) because trace log is cached.
 
+h2. Not support
+recur, etc...
 
 ## Installation
 
