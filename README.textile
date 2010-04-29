@@ -8,7 +8,7 @@ h1. Usage
 <pre class="console">
 user> (use 'hozumi.eyewrap)
 nil
-</ pre>
+</pre>
 
 h2. Normal code
 
@@ -19,7 +19,7 @@ user> (cap (+ 1 2))
 0 : +  (+ 1 2)
 0 : => 3
 3
-</ pre>
+</pre>
 
 <pre class="console">
 user> (cap (* 2 (+ (- 3 8) 4)))
@@ -32,7 +32,7 @@ user> (cap (* 2 (+ (- 3 8) 4)))
 0 : -> (* 2 -1)
 0 : => -2
 -2
-</ pre>
+</pre>
 
 
 h2. With defn
@@ -45,25 +45,25 @@ user> (cap ppp (defn touch [coll target-index]
 		     (into (subvec coll 0 target-index))
 		     (into (subvec coll (inc target-index))))))
 #'user/touch
-</ pre>
+</pre>
 
 ppp turn to be function.
 <pre class="console">
 user> ppp
 #<user$eval__2153$ppp__2209 user$eval__2153$ppp__2209@4ce1e2b3>
-</ pre>
+</pre>
 
 still empty
 <pre class="console">
 user> (ppp)
 :const
-</ pre>
+</pre>
 
 Once defned function has been called, ppp will print trace log.
 <pre class="console">
 user> (touch [1 2 3 4] 2)
 [3 1 2 4]
-</ pre>
+</pre>
 <pre class="console">
 user> (ppp)
 0 : +  (into (into [(coll target-index)] (subvec coll 0 target-index)) (subvec coll (inc target-index)))
@@ -103,12 +103,12 @@ user> (ppp)
 0 : => [3 1 2 4]
 [3 1 2 4]
 user> 
-</ pre>
+</pre>
 
 <pre class="console">
 user> (touch [:a :b :c] 2)
 [:c :a :b]
-</ pre>
+</pre>
 <pre class="console">
 user> (ppp)
 0 : +  (into (into [(coll target-index)] (subvec coll 0 target-index)) (subvec coll (inc target-index)))
@@ -148,7 +148,7 @@ user> (ppp)
 0 : => [:c :a :b]
 [:c :a :b]
 user>
-</ pre>
+</pre>
 
 You can print preview trace log with (ppp 1) because trace log is cached.
 
