@@ -160,9 +160,9 @@ user>
 </pre>
 
 You can print preview trace log by calling (ppp 1), because trace log is cached.
-(ppp number) print old trace log.
-(ppp :c)  : clear cache.
-(ppp :pp) : print internal data structure.
+(ppp number) : print old trace log.
+(ppp :c)     : clear cache.
+(ppp :pp)    : print internal data structure.
 
 h2. Not support
 
