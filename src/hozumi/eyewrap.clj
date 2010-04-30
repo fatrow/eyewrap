@@ -276,10 +276,10 @@
 					    :internal (pprint @~mem)
 					    :c (do (reset! ~mem (mem-init))
 						   @~mem)
-					    :else ":pp - pprint trace log.
+					    (println ":pp - pprint trace log.
 number - print old trace log.
 :internal - print internal data.
-:c - clear cache."))))
+:c - clear cache.")))))
 		      (def ~name
 			   (fn* ~@(map (fn [arg body] (into body (list arg)))
 				       (map first fnbodies)
