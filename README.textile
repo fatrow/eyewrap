@@ -6,7 +6,7 @@ Code is completely macroexpanded and all exceptions are caught by eyewrap.
 h1. Installation
 
 leiningen
-[eyewrap "0.5.1"]
+:dev-dependencies [[eyewrap "0.5.2"]]
 
 h1. Usage
 
