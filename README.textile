@@ -1,6 +1,6 @@
 h1. eyewrap
 
-Observing execution of Clojure code.
+Tracing execution of Clojure code.
 Code is completely macroexpanded and all exceptions are caught by eyewrap.
 
 h1. Installation
@@ -15,7 +15,7 @@ user> (use 'hozumi.eyewrap)
 nil
 </pre>
 
-h2. Normal code
+h2. Tracing normal code
 
  *(cap code)* 
 
@@ -54,7 +54,7 @@ user> (cap (+ 1 3 (- 2 3) (/ 2 0)))
 #<ClassCastException java.lang.ClassCastException: java.lang.ArithmeticException cannot be cast to java.lang.Number>
 </pre>
 
-h2. With defn
+h2. Tracing defn
 
  *(cap name (defn ... code)* 
 

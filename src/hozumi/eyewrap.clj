@@ -104,18 +104,14 @@
     (cond 
       (seq? form) (let [[head & tail] form]
 		    (cond (special-symbol? head) `(sp-cap ~mem ~form ~parent-id-sym)
-			  (or (keyword? head)
-			      (func? (resolve head))
-			      ;;Symbol as a function
-			      (symbol? head)) (let [newid-sym (gensym "id")]
+			  :else (let [newid-sym (gensym "id")]
 						`(let [~newid-sym (:maxid (swap! ~mem allocate-id
 										 ~parent-id-sym))]
 						   (memo-calc-existing-id
 						    ~mem '~form
 						    (apply ~head
 							   (tail-cap ~mem ~tail ~newid-sym))
-						    ~newid-sym)))
-			      :else :error))
+						    ~newid-sym)))))
       ;;(elem? head) `(apply ~head (tail-cap ~mem ~tail))))
       (coll? form) (let [newid-sym (gensym "id")]
 		     `(let [~newid-sym (:maxid (swap! ~mem allocate-id

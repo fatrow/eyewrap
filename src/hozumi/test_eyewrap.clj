@@ -121,5 +121,8 @@
 		   (into (subvec coll 0 target-index))
 		   (into (subvec coll (inc target-index))))))
       (is (= [3 1 2 4 5] (touch [1 2 3 4 5] 2)))
+      (testing "function in coll"
+	(is (= [:c :a 14 81] (touch [:a (+ 2 (* 3 4)):c (* 9 9)] 2)))
+	(is (= [{:b 81} {:a 6} 12 :c] (touch [{:a (+ 1 (+ 2 3))} (* 3 4) {:b (* 9 9)} :c] 2))))
       (testing "infinity lazy seq"
 	(is (= (seq [1 2]) (cap (take 2 (cycle [1 2 3]))))))))
