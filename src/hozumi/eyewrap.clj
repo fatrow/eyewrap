@@ -2,8 +2,8 @@
   #^{:author "Takahiro Hozumi"
      :doc "code observetion tool."}
   hozumi.eyewrap
-  (:use [clojure.contrib.pprint])
-  (:use [clojure.contrib.seq-utils :only (flatten)]))
+  (:use [clojure.contrib.pprint]))
+
 
 (defn elem? [x]
   (not (coll? x)))
@@ -221,31 +221,39 @@
 	data))
     out))
 
-(defn my-print [level typ form]
-  (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
-      (println form)))
+(defn my-print [level typ form style]
+  (condp = style
+    :pp (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
+	 (let [str-writer (java.io.StringWriter.)]
+	   (pprint form str-writer)
+	   (println (.trim (.replaceAll (.toString str-writer)
+					"\n"
+					(apply str (concat '("\n") (repeat 6 " ")
+							   (repeat level " "))))))))
+    :1line (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
+	       (println form))))
 
-(defn print-node1 [{:keys [id form out child]} level]
+(defn print-node1 [{:keys [id form out child]} level style]
   (if (= form out)
     :const
-    (do (my-print level "+" form)
+    (do (my-print level "+" form style)
 	(let [uptodate-form (atom form)
 	      limited-size-v (lazy-chked-v out)]
 	  (doseq [{cform :form, cout :out, :as achild} (reverse (vals child))]
-	    (let [child-out (print-node1 achild (inc level))]
+	    (let [child-out (print-node1 achild (inc level) style)]
 	      (if (not= :const child-out)
-		(my-print level "->" (swap! uptodate-form #(replace {cform child-out} %))))))
-	  (my-print level "=>" limited-size-v)
+		(my-print level "->" (swap! uptodate-form #(replace {cform child-out} %)) style))))
+	  (my-print level "=>" limited-size-v style)
 	  limited-size-v))))
 
-(defn print-node [{:keys [result]} n]
-  (print-node1 (nth (vals (:child result)) n) 0))
+(defn print-node [{:keys [result]} n style]
+  (print-node1 (nth (vals (:child result)) n) 0 style))
 
 (defmacro cap
   ([form]
      `(let [mem# (atom (mem-init))]
 	(maybe-f-cap mem# ~(macroexpand-all form) nil)
-	(print-node @mem# 0)
+	(print-node @mem# 0 :1line)
 	(get-in (:result @mem#)
 		(vec (conj (vec (interleave (repeat :child)
 					    (get-idpath (:parent-table @mem#) 1)))
@@ -261,15 +269,17 @@
 		      (= 'fn* (first third)))
 	       (let [fnbodies (rest third)]
 		 `(do (defn ~caller
-			([] (print-node @~mem 0))
-			([x#] (cond (number? x#) (print-node @~mem x#)
+			([] (print-node @~mem 0 :1line))
+			([x#] (cond (number? x#) (print-node @~mem x# :1line)
 				    :else (condp = x#
-					    :p (print-node @~mem)
-					    :pp (pprint @~mem)
+					    :pp (print-node @~mem 0 :pp)
+					    :internal (pprint @~mem)
 					    :c (do (reset! ~mem (mem-init))
 						   @~mem)
-					    :else (do (reset! ~mem (mem-init))
-						      @~mem)))))
+					    :else ":pp - pprint trace log.
+number - print old trace log.
+:internal - print internal data.
+:c - clear cache."))))
 		      (def ~name
 			   (fn* ~@(map (fn [arg body] (into body (list arg)))
 				       (map first fnbodies)

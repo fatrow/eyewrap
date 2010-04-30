@@ -116,6 +116,8 @@
 (deftest test-cap
   (do (is (= 3 (cap (+ 1 2))))
       (is (= 89 (cap (+ (- 1 2) (* 3 (+ 4 2) 5)))))
+      (testing "head of list is fn"
+	(is (= 4 (cap ((fn [x] (* x x)) 2)))))
       (cap p (defn touch [coll target-index]
 	       (-> [(coll target-index)]
 		   (into (subvec coll 0 target-index))
