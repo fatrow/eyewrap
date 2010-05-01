@@ -173,36 +173,36 @@
 	   '.     `(memo-calc ~mem
 			      '~form
 			      ~form
-			      nil)
+			      ~newid-sym)
 	   'new   `(memo-calc ~mem
 			      '~form
 			      ~form
-			      nil)
+			      ~newid-sym)
 	   'var   `(memo-calc ~mem
 			      '~form
 			      ~form
-			      nil)
+			      ~newid-sym)
 	   'loop* `(memo-calc ~mem
 			      '~form
 			      ~form
-			      nil)
+			      ~newid-sym)
 	   'recur form
 	   'try   `(memo-calc ~mem
 			      '~form
 			      ~form
-			      nil)
+			      ~newid-sym)
 	   'throw `(memo-calc ~mem
 			      '~form
 			      ~form
-			      nil)
+			      ~newid-sym)
 	   'catch `(memo-calc ~mem
 			      '~form
 			      ~form
-			      nil)
+			      ~newid-sym)
 	   'set!  `(memo-calc ~mem
 			      '~form
 			      ~form
-			      nil))))))
+			      ~newid-sym))))))
 
 (def *max-print-size* 100)
 
