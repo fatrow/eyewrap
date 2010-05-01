@@ -118,13 +118,28 @@
       (is (= 89 (cap (+ (- 1 2) (* 3 (+ 4 2) 5)))))
       (testing "head of list is fn"
 	(is (= 4 (cap ((fn [x] (* x x)) 2)))))
-      (cap p (defn touch [coll target-index]
-	       (-> [(coll target-index)]
-		   (into (subvec coll 0 target-index))
-		   (into (subvec coll (inc target-index))))))
-      (is (= [3 1 2 4 5] (touch [1 2 3 4 5] 2)))
+      (testing "tracing defn"
+	(cap ppp (defn touch [coll target-index]
+		 (-> [(coll target-index)]
+		     (into (subvec coll 0 target-index))
+		     (into (subvec coll (inc target-index))))))
+	(is (= [3 1 2 4 5] (touch [1 2 3 4 5] 2)))
+	(is (= [:b :a :c] (touch [:a :b :c] 1)))
+	(ppp 1)
+	(ppp)
+	(ppp :pp)
+	(ppp :internal)
+	(ppp :c)
+	(ppp :help))
       (testing "function in coll"
 	(is (= [:c :a 14 81] (touch [:a (+ 2 (* 3 4)):c (* 9 9)] 2)))
 	(is (= [{:b 81} {:a 6} 12 :c] (touch [{:a (+ 1 (+ 2 3))} (* 3 4) {:b (* 9 9)} :c] 2))))
       (testing "infinity lazy seq"
-	(is (= (seq [1 2]) (cap (take 2 (cycle [1 2 3]))))))))
+	(is (= (seq [1 2]) (cap (take 2 (cycle [1 2 3]))))))
+      (testing "multiple body fn"
+	(is (= 3 ((fn [x] (println (inc x)) (dec x)) 4)))
+	(is (= 3 ((fn [x] (dec x)) 4)))
+	(cap ppp (defn aaa [x] (println (inc x)) (dec x)))
+	(is (= 3 (aaa 4)))
+	(cap ppp (defn aaa [x] (dec x)))
+	(is (= 3 (aaa 4))))))

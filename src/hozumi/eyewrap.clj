@@ -158,9 +158,11 @@
 	   'fn* `(memo-calc-existing-id
 		  ~mem
 		  '~form
-		  (fn* ~@(map (fn [arg body] (into body (list arg)))
+		  (fn* ~@(map (fn [arg body] (cons arg (list body)))
 			      (map first tail)
-			      (map (fn [s] (map #(list 'maybe-f-cap mem % newid-sym) s))
+			      (map #(if (= 1 (count %))
+				      `(maybe-f-cap ~mem ~@% ~newid-sym)
+				      `(maybe-f-cap ~mem (do ~@%) ~newid-sym))
 				   (map rest tail))))
 		  ~newid-sym)
 	   'if `(memo-calc-existing-id
@@ -267,25 +269,24 @@
 	 `(let [~mem (atom (mem-init))]
 	    ~(if (and (= 'def op)
 		      (= 'fn* (first third)))
-	       (let [fnbodies (rest third)]
-		 `(do (defn ~caller
-			([] (print-node @~mem 0 :1line))
-			([x#] (cond (number? x#) (print-node @~mem x# :1line)
-				    :else (condp = x#
-					    :pp (print-node @~mem 0 :pp)
-					    :internal (pprint @~mem)
-					    :c (do (reset! ~mem (mem-init))
-						   @~mem)
-					    (println ":pp - pprint trace log.
+	       (do `(do (defn ~caller
+			  ([] (print-node @~mem 0 :1line))
+			  ([x#] (cond (number? x#) (print-node @~mem x# :1line)
+				      :else (condp = x#
+					      :pp (print-node @~mem 0 :pp)
+					      :internal (pprint @~mem)
+					      :c (do (reset! ~mem (mem-init))
+						     @~mem)
+					      (println ":pp - pprint trace log.
 number - print old trace log.
 :internal - print internal data.
 :c - clear cache.")))))
-		      (def ~name
-			   (fn* ~@(map (fn [arg body] (into body (list arg)))
-				       (map first fnbodies)
-				       (map (fn [s] (map #(list 'maybe-f-cap mem % nil) s))
-					    (map rest fnbodies)))))))
+			(def ~name
+			     ~(let [fnbodies (rest third)]
+				`(fn* ~@(map (fn [arg body] (cons arg (list body)))
+					     (map first fnbodies)
+					     (map #(if (= 1 (count %))
+						     `(maybe-f-cap ~mem ~@% nil)
+						     `(maybe-f-cap ~mem (do ~@%) nil))
+						  (map rest fnbodies))))))))
 	       `(cap ~form)))))))
-
-(fn* ([x] (inc x) (dec x))
-     ([x y] (+ x y) (- x y)))
