@@ -102,7 +102,7 @@
       (testing "head of list is fn"
 	(is (= 4 (cap ((fn [x] (* x x)) 2)))))
       (testing "tracing defn"
-	(cap ppp (defn touch [coll target-index]
+	(cap ppp (defn- touch [coll target-index]
 		 (-> [(coll target-index)]
 		     (into (subvec coll 0 target-index))
 		     (into (subvec coll (inc target-index))))))
@@ -122,7 +122,7 @@
       (testing "multiple body fn"
 	(is (= 3 ((fn [x] (println (inc x)) (dec x)) 4)))
 	(is (= 3 ((fn [x] (dec x)) 4)))
-	(cap ppp (defn aaa [x] (println (inc x)) (dec x)))
+	(cap ppp (defn- aaa [x] (println (inc x)) (dec x)))
 	(is (= 3 (aaa 4)))
-	(cap ppp (defn aaa [x] (dec x)))
+	(cap ppp (defn- aaa [x] (dec x)))
 	(is (= 3 (aaa 4))))))
