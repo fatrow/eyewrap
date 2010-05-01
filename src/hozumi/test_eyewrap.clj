@@ -2,7 +2,7 @@
 (ns
   #^{:author "Takahiro Hozumi"
      :doc "Code observation tool."}
-  hozumi.eyewrap.test-eyewrap
+  hozumi.test-eyewrap
   (:use [hozumi.eyewrap] :reload-all)
   (:use [clojure.test]))
 
@@ -20,23 +20,6 @@
        false {:a 1}
        false #{}
        false #{:a :b}))
-       
-(deftest test-func?
-  (are [expected x] (= expected (func? x))
-       true map
-       true (fn [] 1)
-       true :a
-       true 'a
-       false 1
-       false (java.util.ArrayList.)))
-
-(deftest test-macro?
-  (are [expected sym] (= expected (macro? sym))
-       true 'cond
-       true 'for
-       false 'map
-       false 'fklajfe
-       false ':a))
 
 (deftest test-conv-to
   (are [expected type coll] (= expected (conv-to type coll))

@@ -8,14 +8,6 @@
 (defn elem? [x]
   (not (coll? x)))
 
-(defn func? [x]
-  (or (ifn? x) (fn? x)))
-
-(defn macro? [sym]
-  (let [ans (cond (symbol? sym) (:macro (meta (resolve sym)))
-		  (var? sym) (:macro (meta sym)))]
-    (if (= nil ans) false ans)))	
-
 (defn conv-to [type coll]
   (cond (vector? type) (vec coll)
 	(map? type) (apply merge {} coll)
@@ -112,7 +104,6 @@
 						    (apply ~head
 							   (tail-cap ~mem ~tail ~newid-sym))
 						    ~newid-sym)))))
-      ;;(elem? head) `(apply ~head (tail-cap ~mem ~tail))))
       (coll? form) (let [newid-sym (gensym "id")]
 		     `(let [~newid-sym (:maxid (swap! ~mem allocate-id
 						       ~parent-id-sym))]
