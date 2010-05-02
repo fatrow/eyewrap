@@ -233,17 +233,17 @@
 	       (println form))))
 
 (defn print-node1 [{:keys [id form out child]} level style]
-  (if (= form out)
-    :const
-    (do (my-print level "+" form style)
-	(let [uptodate-form (atom form)
-	      limited-size-v (lazy-chked-v out)]
-	  (doseq [{cform :form, cout :out, :as achild} (reverse (vals child))]
-	    (let [child-out (print-node1 achild (inc level) style)]
-	      (if (not= :const child-out)
-		(my-print level "->" (swap! uptodate-form #(replace {cform child-out} %)) style))))
-	  (my-print level "=>" limited-size-v style)
-	  limited-size-v))))
+  (cond (= form out) :const
+	(elem? form) out
+	:else (do (my-print level "+" form style)
+		  (let [uptodate-form (atom form)
+			limited-size-v (lazy-chked-v out)]
+		    (doseq [{cform :form, cout :out, :as achild} (reverse (vals child))]
+		      (let [child-out (print-node1 achild (inc level) style)]
+			(if (not= :const child-out)
+			  (my-print level "->" (swap! uptodate-form #(replace {cform child-out} %)) style))))
+		    (my-print level "=>" limited-size-v style)
+		    limited-size-v))))
 
 (defn print-node [{:keys [result]} n style]
   (print-node1 (nth (vals (:child result)) n) 0 style))
