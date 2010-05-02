@@ -120,8 +120,10 @@
       (testing "infinity lazy seq"
 	(is (= (seq [1 2]) (cap (take 2 (cycle [1 2 3]))))))
       (testing "multiple body fn"
-	(is (= 3 ((fn [x] (println (inc x)) (dec x)) 4)))
-	(is (= 3 ((fn [x] (dec x)) 4)))
+	(is (= 3 (cap ((fn [x] (println (inc x)) (dec x)) 4))))
+	(is (= 2 (cap ((fn ([x] (dec x) (inc x)) ([x y] (- x y) (+ x y))) 1))))
+	(is (= 3 (cap ((fn ([x] (dec x) (inc x)) ([x y] (- x y) (+ x y))) 1 2))))
+	(is (= 3 (cap ((fn [x] (dec x)) 4))))
 	(cap ppp (defn- aaa [x] (println (inc x)) (dec x)))
 	(is (= 3 (aaa 4)))
 	(cap ppp (defn- aaa [x] (dec x)))

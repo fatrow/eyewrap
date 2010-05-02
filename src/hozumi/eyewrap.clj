@@ -97,13 +97,15 @@
       (seq? form) (let [[head & tail] form]
 		    (cond (special-symbol? head) `(sp-cap ~mem ~form ~parent-id-sym)
 			  :else (let [newid-sym (gensym "id")]
-						`(let [~newid-sym (:maxid (swap! ~mem allocate-id
-										 ~parent-id-sym))]
-						   (memo-calc-existing-id
-						    ~mem '~form
-						    (apply ~head
-							   (tail-cap ~mem ~tail ~newid-sym))
-						    ~newid-sym)))))
+				  `(let [~newid-sym (:maxid (swap! ~mem allocate-id ~parent-id-sym))
+					 function# ~(if (seq? head)
+						      `(maybe-f-cap ~mem ~head ~newid-sym)
+						      head)]
+				     (memo-calc-existing-id
+				      ~mem '~form
+				      (apply function#
+					     (tail-cap ~mem ~tail ~newid-sym))
+				      ~newid-sym)))))
       (coll? form) (let [newid-sym (gensym "id")]
 		     `(let [~newid-sym (:maxid (swap! ~mem allocate-id
 						       ~parent-id-sym))]
@@ -123,87 +125,91 @@
 	  (coll? head) `(cons (maybe-f-cap ~mem ~head ~parent-id-sym)
 			      (tail-cap ~mem ~tail ~parent-id-sym)))))
 
+(defn reconst-fn [mem body newid-sym]
+  (let [uniformed-body (if (vector? (first body)) (list body) body)]
+    `(fn* ~@(map (fn [arg body] (list arg body))
+		 (map first uniformed-body)
+		 (map #(if (= 1 (count %))
+			 `(maybe-f-cap ~mem ~@% ~newid-sym)
+			 `(maybe-f-cap ~mem (do ~@%) ~newid-sym))
+		      (map rest uniformed-body))))))
+
 (defmacro sp-cap [mem form parent-id-sym]
   (let [[head & tail] form]
     (let [newid-sym (gensym "id")]
       `(let [~newid-sym (:maxid (swap! ~mem allocate-id
 				       ~parent-id-sym))]
 	 ~(condp = head
-	   'let* (let [binds (second form)
-		       body (drop 2 form)
-		       newbinds (vec (interleave (take-nth 2 binds)
-						 (map #(list 'maybe-f-cap mem % newid-sym)
-						      (take-nth 2 (rest binds)))))
-		       code `(let* ~newbinds
-				   ~@(map #(list 'maybe-f-cap mem % newid-sym) body))]
-		   `(memo-calc-existing-id ~mem
-					   '~form
-					   ~code
-					   ~newid-sym))
-	   'def (let [[var-name [fs _ :as body]] tail]
-		  `(memo-calc-existing-id
-				~mem
-				'~form
-				(def ~var-name (maybe-f-cap ~mem ~body ~newid-sym))
-				~newid-sym))
-	   'fn* `(memo-calc-existing-id
+	    'let* (let [binds (second form)
+			body (drop 2 form)
+			newbinds (vec (interleave (take-nth 2 binds)
+						  (map #(list 'maybe-f-cap mem % newid-sym)
+						       (take-nth 2 (rest binds)))))
+			code `(let* ~newbinds
+				    ~@(map #(list 'maybe-f-cap mem % newid-sym) body))]
+		    `(memo-calc-existing-id ~mem
+					    '~form
+					    ~code
+					    ~newid-sym))
+	    'def (let [[var-name [fs _ :as body]] tail]
+		   `(memo-calc-existing-id
+		     ~mem
+		     '~form
+		     (def ~var-name (maybe-f-cap ~mem ~body ~newid-sym))
+		     ~newid-sym))
+	    'fn* `(memo-calc-existing-id
+		   ~mem
+		   '~form
+		   ~(reconst-fn mem tail parent-id-sym)
+		   ~newid-sym)
+	    'if `(memo-calc-existing-id
 		  ~mem
 		  '~form
-		  (fn* ~@(map (fn [arg body] (cons arg (list body)))
-			      (map first tail)
-			      (map #(if (= 1 (count %))
-				      `(maybe-f-cap ~mem ~@% ~newid-sym)
-				      `(maybe-f-cap ~mem (do ~@%) ~newid-sym))
-				   (map rest tail))))
+		  (if ~@(map #(list 'maybe-f-cap mem % newid-sym) tail))
 		  ~newid-sym)
-	   'if `(memo-calc-existing-id
-		 ~mem
-		 '~form
-		 (if ~@(map #(list 'maybe-f-cap mem % newid-sym) tail))
-		 ~newid-sym)
-	   'do `(memo-calc-existing-id
-		 ~mem
-		 '~form
-		 (do ~@(map #(list 'maybe-f-cap mem % newid-sym) tail))
-		 ~newid-sym)
-	   'quote `(memo-calc ~mem
-			      '~form
+	    'do `(memo-calc-existing-id
+		  ~mem
+		  '~form
+		  (do ~@(map #(list 'maybe-f-cap mem % newid-sym) tail))
+		  ~newid-sym)
+	    'quote `(memo-calc ~mem
+			       '~form
+			       ~form
+			       ~newid-sym)
+	    '.     `(memo-calc ~mem
+			       '~form
+			       ~form
+			       ~newid-sym)
+	    'new   `(memo-calc ~mem
+			       '~form
+			       ~form
+			       ~newid-sym)
+	    'var   `(memo-calc ~mem
+			       '~form
+			       ~form
+			       ~newid-sym)
+	    'loop* `(memo-calc ~mem
+			       '~form
+			       ~form
+			       ~newid-sym)
+	    'recur `form
+	    'try   `(memo-calc ~mem
+			       '~form
+			       ~form
+			       ~newid-sym)
+	    'throw `(memo-calc ~mem
+			       '~form
+			       ~form
+			      ~newid-sym)
+	    'catch `(memo-calc ~mem
+			       '~form
 			      ~form
 			      ~newid-sym)
-	   '.     `(memo-calc ~mem
-			      '~form
-			      ~form
-			      ~newid-sym)
-	   'new   `(memo-calc ~mem
-			      '~form
-			      ~form
-			      ~newid-sym)
-	   'var   `(memo-calc ~mem
-			      '~form
-			      ~form
-			      ~newid-sym)
-	   'loop* `(memo-calc ~mem
-			      '~form
-			      ~form
-			      ~newid-sym)
-	   'recur form
-	   'try   `(memo-calc ~mem
-			      '~form
-			      ~form
-			      ~newid-sym)
-	   'throw `(memo-calc ~mem
-			      '~form
-			      ~form
-			      ~newid-sym)
-	   'catch `(memo-calc ~mem
-			      '~form
-			      ~form
-			      ~newid-sym)
-	   'set!  `(memo-calc ~mem
+	    'set!  `(memo-calc ~mem
 			      '~form
 			      ~form
 			      ~newid-sym))))))
-
+  
 (def *max-print-size* 100)
 
 (defn lazy-chked-v [out]
@@ -274,10 +280,6 @@ number - print old trace log.
 :c - clear cache.")))))
 			(def ~name
 			     ~(let [fnbodies (rest third)]
-				`(fn* ~@(map (fn [arg body] (cons arg (list body)))
-					     (map first fnbodies)
-					     (map #(if (= 1 (count %))
-						     `(maybe-f-cap ~mem ~@% nil)
-						     `(maybe-f-cap ~mem (do ~@%) nil))
-						  (map rest fnbodies))))))))
+				(reconst-fn mem fnbodies nil)))))
 	       `(cap ~form)))))))
+
