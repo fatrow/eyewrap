@@ -127,4 +127,6 @@
 	(cap ppp (defn- aaa [x] (println (inc x)) (dec x)))
 	(is (= 3 (aaa 4)))
 	(cap ppp (defn- aaa [x] (dec x)))
-	(is (= 3 (aaa 4))))))
+	(is (= 3 (aaa 4))))
+      (testing "special-form"
+	(is (number? (cap (System/currentTimeMillis)))))))

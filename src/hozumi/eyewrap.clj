@@ -172,43 +172,43 @@
 		  '~form
 		  (do ~@(map #(list 'maybe-f-cap mem % newid-sym) tail))
 		  ~newid-sym)
-	    'quote `(memo-calc ~mem
-			       '~form
-			       ~form
-			       ~newid-sym)
-	    '.     `(memo-calc ~mem
-			       '~form
-			       ~form
-			       ~newid-sym)
-	    'new   `(memo-calc ~mem
-			       '~form
-			       ~form
-			       ~newid-sym)
-	    'var   `(memo-calc ~mem
-			       '~form
-			       ~form
-			       ~newid-sym)
-	    'loop* `(memo-calc ~mem
-			       '~form
-			       ~form
-			       ~newid-sym)
+	    'quote `(memo-calc-existing-id ~mem
+					   '~form
+					   ~form
+					   ~newid-sym)
+	    '.     `(memo-calc-existing-id ~mem
+					   '~form
+					   ~form
+					   ~newid-sym)
+	    'new   `(memo-calc-existing-id ~mem
+					   '~form
+					   ~form
+					   ~newid-sym)
+	    'var   `(memo-calc-existing-id ~mem
+					   '~form
+					   ~form
+					   ~newid-sym)
+	    'loop* `(memo-calc-existing-id ~mem
+					   '~form
+					   ~form
+					   ~newid-sym)
 	    'recur `form
-	    'try   `(memo-calc ~mem
-			       '~form
-			       ~form
-			       ~newid-sym)
-	    'throw `(memo-calc ~mem
-			       '~form
-			       ~form
-			      ~newid-sym)
-	    'catch `(memo-calc ~mem
-			       '~form
-			      ~form
-			      ~newid-sym)
-	    'set!  `(memo-calc ~mem
-			      '~form
-			      ~form
-			      ~newid-sym))))))
+	    'try   `(memo-calc-existing-id ~mem
+					   '~form
+					   ~form
+					   ~newid-sym)
+	    'throw `(memo-calc-existing-id ~mem
+					   '~form
+					   ~form
+					   ~newid-sym)
+	    'catch `(memo-calc-existing-id ~mem
+					   '~form
+					   ~form
+					   ~newid-sym)
+	    'set!  `(memo-calc-existing-id ~mem
+					   '~form
+					   ~form
+					   ~newid-sym))))))
   
 (def *max-print-size* 100)
 
