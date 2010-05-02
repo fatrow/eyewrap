@@ -98,9 +98,7 @@
 		    (cond (special-symbol? head) `(sp-cap ~mem ~form ~parent-id-sym)
 			  :else (let [newid-sym (gensym "id")]
 				  `(let [~newid-sym (:maxid (swap! ~mem allocate-id ~parent-id-sym))
-					 function# ~(if (seq? head)
-						      `(maybe-f-cap ~mem ~head ~newid-sym)
-						      head)]
+					 function# (maybe-f-cap ~mem ~head ~newid-sym)]
 				     (memo-calc-existing-id
 				      ~mem '~form
 				      (apply function#
@@ -137,8 +135,7 @@
 (defmacro sp-cap [mem form parent-id-sym]
   (let [[head & tail] form]
     (let [newid-sym (gensym "id")]
-      `(let [~newid-sym (:maxid (swap! ~mem allocate-id
-				       ~parent-id-sym))]
+      `(let [~newid-sym (:maxid (swap! ~mem allocate-id ~parent-id-sym))]
 	 ~(condp = head
 	    'let* (let [binds (second form)
 			body (drop 2 form)
@@ -237,8 +234,14 @@
 	(elem? form) out
 	:else (do (my-print level "+" form style)
 		  (let [uptodate-form (atom form)
-			limited-size-v (lazy-chked-v out)]
-		    (doseq [{cform :form, cout :out, :as achild} (reverse (vals child))]
+			limited-size-v (lazy-chked-v out)
+			[first-child :as my-childs] (reverse (vals child))
+			target-childs (cond (and (seq? form)
+						 (coll? (:out first-child))) my-childs
+						 (and (seq? form)
+						      (elem? (:out first-child))) (rest my-childs)
+						 (coll? form) my-childs)]
+		    (doseq [{cform :form, cout :out, :as achild} target-childs]
 		      (let [child-out (print-node1 achild (inc level) style)]
 			(if (not= :const child-out)
 			  (my-print level "->" (swap! uptodate-form #(replace {cform child-out} %)) style))))
