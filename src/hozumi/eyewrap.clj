@@ -19,7 +19,7 @@
 	(seq? form) (try (let [expanded (macroexpand form)]
 			   (cond (elem? expanded)  expanded
 				 (= 'quote (first expanded)) expanded
-				 (seq? expanded)  (cons (first expanded)
+				 (seq? expanded)  (cons (macroexpand-all (first expanded))
 							(map macroexpand-all (rest expanded)))
 				 (coll? expanded) (macroexpand-all expanded)))
 			 (catch java.lang.Exception e form))
