@@ -1,4 +1,4 @@
-(defproject eyewrap "0.5.4"
+(defproject eyewrap "0.5.5"
   :description "Execution observe tool."
   :dependencies [[org.clojure/clojure "1.1.0"]
                  [org.clojure/clojure-contrib "1.1.0"]]

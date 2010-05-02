@@ -115,6 +115,9 @@
 	(ppp :c)
 	(ppp :help))
       (testing "function in coll"
+	(is (= 2 (cap ({:a (inc 1) :b (dec 1)} :a))))
+	(is (= 2 (cap ([(inc 1) (inc 2) (dec 1) (dec 2)] 0))))
+	(is (= [1] (cap [(inc 0)])))
 	(is (= [:c :a 14 81] (touch [:a (+ 2 (* 3 4)):c (* 9 9)] 2)))
 	(is (= [{:b 81} {:a 6} 12 :c] (touch [{:a (+ 1 (+ 2 3))} (* 3 4) {:b (* 9 9)} :c] 2))))
       (testing "infinity lazy seq"
