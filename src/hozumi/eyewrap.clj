@@ -25,15 +25,14 @@
 			    (coll? expanded) (macroexpand-all expanded)))
 	(coll? form) (conv-to form (map macroexpand-all form))))
 
-(defn get-idpath1 [parent-table path]
-  (loop [path path]
-    (let [parent-id (parent-table (first path))]
-      (if (nil? parent-id)
-	(vec path)
-	(recur (cons parent-id path))))))
-
 (defn get-idpath [parent-table id]
-  (get-idpath1 parent-table (if (nil? id) [] [id])))
+  (letfn [(get-idpath1  [parent-table path]
+			(loop [path path]
+			  (let [parent-id (parent-table (first path))]
+			    (if (nil? parent-id)
+			      (vec path)
+			      (recur (cons parent-id path))))))]
+    (get-idpath1 parent-table (if (nil? id) [] [id]))))
 
 (defn get-access-vec
   ([parent-table id]
