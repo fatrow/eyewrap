@@ -2,6 +2,7 @@ h1. eyewrap
 
 Tracing execution of Clojure code.
 Code is completely macroexpanded and all exceptions are caught by eyewrap.
+Feel free to tell me problem or code which doesn't work well.
 
 h1. Installation
 
