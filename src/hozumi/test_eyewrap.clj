@@ -103,18 +103,18 @@
       (testing "head of list is fn"
 	(is (= 4 (cap ((fn [x] (* x x)) 2)))))
       (testing "tracing defn"
-	(cap ppp (defn- touch [coll target-index]
+	(cap yyy (defn- touch [coll target-index]
 		 (-> [(coll target-index)]
 		     (into (subvec coll 0 target-index))
 		     (into (subvec coll (inc target-index))))))
 	(is (= [3 1 2 4 5] (touch [1 2 3 4 5] 2)))
 	(is (= [:b :a :c] (touch [:a :b :c] 1)))
-	(ppp 1)
-	(ppp)
-	(ppp :pp)
-	(ppp :internal)
-	(ppp :c)
-	(ppp :help))
+	(yyy 1)
+	(yyy)
+	(yyy :pp)
+	(yyy :internal)
+	(yyy :c)
+	(yyy :help))
       (testing "function in coll"
 	(is (= 2 (cap ({:a (inc 1) :b (dec 1)} :a))))
 	(is (= 2 (cap ([(inc 1) (inc 2) (dec 1) (dec 2)] 0))))
@@ -128,9 +128,9 @@
 	(is (= 2 (cap ((fn ([x] (dec x) (inc x)) ([x y] (- x y) (+ x y))) 1))))
 	(is (= 3 (cap ((fn ([x] (dec x) (inc x)) ([x y] (- x y) (+ x y))) 1 2))))
 	(is (= 3 (cap ((fn [x] (dec x)) 4))))
-	(cap ppp (defn- aaa [x] (println (inc x)) (dec x)))
+	(cap yyy (defn- aaa [x] (println (inc x)) (dec x)))
 	(is (= 3 (aaa 4)))
-	(cap ppp (defn- aaa [x] (dec x)))
+	(cap yyy (defn- aaa [x] (dec x)))
 	(is (= 3 (aaa 4))))
       (testing "special-form"
 	(is (number? (cap (System/currentTimeMillis)))))))
