@@ -236,7 +236,8 @@
 			limited-size-v (lazy-chked-v out)
 			[first-child :as my-childs] (reverse (vals child))
 			target-childs (cond (and (seq? form)
-						 (coll? (:out first-child))) my-childs
+						 (or (special-symbol? (first form))
+						     (coll? (:out first-child)))) my-childs
 						 (and (seq? form)
 						      (elem? (:out first-child))) (rest my-childs)
 						 (coll? form) my-childs)]
