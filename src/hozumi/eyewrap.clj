@@ -35,12 +35,19 @@
 (defn get-idpath [parent-table id]
   (get-idpath1 parent-table (if (nil? id) [] [id])))
 
+(defn get-access-vec
+  ([parent-table id]
+     (vec (interleave (repeat :child)
+		      (get-idpath parent-table id))))
+  ([parent-table id newid]
+     (vec (interleave (repeat :child)
+		      (conj (get-idpath parent-table id)
+			    newid)))))
+
 (defn update-mem
   [{:keys [maxid result parent-table]} form v parent-id]
   (let [newid (inc maxid)
-	access-vec (vec (interleave (repeat :child)
-				    (conj (get-idpath parent-table parent-id)
-					  newid)))
+	access-vec (get-access-vec parent-table parent-id newid)
 	ans (assoc (get-in result access-vec)
 	      :out v,
 	      :form form,
@@ -51,8 +58,7 @@
 
 (defn update-mem-existing-id
   [{:keys [maxid result parent-table] :as mem} form v id]
-  (let [access-vec (vec (interleave (repeat :child)
-				    (get-idpath parent-table id)))
+  (let [access-vec (get-access-vec parent-table id)
 	ans (assoc (get-in result access-vec)
 	      :out v,
 	      :form form,
@@ -61,9 +67,7 @@
 
 (defn allocate-id [{:keys [maxid result parent-table]} parent-id]
   (let [newid (inc maxid)
-	access-vec (vec (interleave (repeat :child)
-				    (conj (get-idpath parent-table parent-id)
-					  newid)))]
+	access-vec (get-access-vec parent-table parent-id newid)]
     {:maxid newid,
      :result (assoc-in result access-vec {})
      :parent-table (assoc parent-table newid parent-id)}))
@@ -72,17 +76,14 @@
   [mem form v parent-id-sym]
   `(let [catched-v# (try ~v (catch java.lang.Exception e# e#))
 	 {id# :maxid, result# :result} (swap! ~mem update-mem ~form catched-v# ~parent-id-sym)
-	 access-vec# (vec (conj (vec (interleave (repeat :child)
-						 (get-idpath (:parent-table @~mem) id#)))
-				:out))]
+	 access-vec# (conj (get-access-vec (:parent-table @~mem) id#) :out)]
      (get-in result# access-vec#)))
 
 (defmacro memo-calc-existing-id
   [mem form v id-sym]
-  `(let [access-vec# (vec (cons :result
-				(conj (vec (interleave (repeat :child)
-						       (get-idpath (:parent-table @~mem) ~id-sym)))
-				      :out)))
+  `(let [access-vec# (-> [:result]
+			 (into ,,, (get-access-vec (:parent-table @~mem) ~id-sym))
+			 (into ,,, [:out]))
 	 catched-v# (try ~v (catch java.lang.Exception e# e#))]
      (swap! ~mem update-mem-existing-id ~form catched-v# ~id-sym)
      (get-in @~mem access-vec#)))
@@ -256,9 +257,8 @@
 	(maybe-f-cap mem# ~(macroexpand-all form) nil)
 	(print-node @mem# 0 :1line)
 	(get-in (:result @mem#)
-		(vec (conj (vec (interleave (repeat :child)
-					    (get-idpath (:parent-table @mem#) 1)))
-			   :out)))))
+		(conj (get-access-vec (:parent-table @mem#) 1)
+		      :out))))
   ([caller form]
      (let [expanded (macroexpand-all form)
 	   op (first expanded)
