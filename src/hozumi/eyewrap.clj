@@ -16,15 +16,15 @@
 
 (defn macroexpand-all [form]
   (cond (elem? form) form
-	(seq? form) (try (let [expanded (macroexpand form)]
-			   (cond (elem? expanded)  expanded
-				 (= 'quote (first expanded)) expanded
-				 (seq? expanded)  (cons (macroexpand-all (first expanded))
-							(map macroexpand-all (rest expanded)))
-				 (coll? expanded) (macroexpand-all expanded)))
-			 (catch java.lang.Exception e form))
+	(seq? form) (let [expanded (macroexpand form)]
+		      (cond (elem? expanded)  expanded
+			    (and (coll? expanded) (empty? expanded)) expanded
+			    (= 'quote (first expanded)) expanded
+			    (seq? expanded)  (cons (macroexpand-all (first expanded))
+						   (map macroexpand-all (rest expanded)))
+			    (coll? expanded) (macroexpand-all expanded)))
 	(coll? form) (conv-to form (map macroexpand-all form))))
-    
+
 (defn get-idpath1 [parent-table path]
   (loop [path path]
     (let [parent-id (parent-table (first path))]

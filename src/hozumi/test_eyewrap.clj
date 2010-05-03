@@ -53,10 +53,11 @@
        :a  `(m-identity :a)
        1   `(m-identity 1)
        [1] `(m-identity [1])
-       {:a 1} `(m-identity {:a 1}))
+       {:a 1} `(m-identity {:a 1})
+       nil `(m-identity nil)
+       () `(m-identity ()))
   (testing "don't throw Exception"
     (is (not= nil (macroexpand-all '(condp = x :a 1 :b 2))))))
-
 
 (deftest test-allocate-id
   (let [mem (atom (mem-init))]
