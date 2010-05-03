@@ -97,11 +97,10 @@
       (seq? form) (let [[head & tail] form]
 		    (cond (special-symbol? head) `(sp-cap ~mem ~form ~parent-id-sym)
 			  :else (let [newid-sym (gensym "id")]
-				  `(let [~newid-sym (:maxid (swap! ~mem allocate-id ~parent-id-sym))
-					 function# (maybe-f-cap ~mem ~head ~newid-sym)]
+				  `(let [~newid-sym (:maxid (swap! ~mem allocate-id ~parent-id-sym))]
 				     (memo-calc-existing-id
 				      ~mem '~form
-				      (apply function#
+				      (apply (maybe-f-cap ~mem ~head ~newid-sym)
 					     (tail-cap ~mem ~tail ~newid-sym))
 				      ~newid-sym)))))
       (coll? form) (let [newid-sym (gensym "id")]
