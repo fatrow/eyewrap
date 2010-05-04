@@ -247,7 +247,6 @@
 		     (conj (get-access-vec (:parent-table @mem#) 1)
 			   :out))
 	     (catch java.lang.Exception e#
-	       (println @mem#)
 	       (print-node @mem# 0 :1line)
 	       e#))))
   ([caller form]
