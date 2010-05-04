@@ -44,72 +44,64 @@
 			    newid)))))
 
 (defn update-mem
-  [{:keys [maxid result parent-table]} form v parent-id]
-  (let [newid (inc maxid)
-	access-vec (get-access-vec parent-table parent-id newid)
-	ans (assoc (get-in result access-vec)
-	      :out v,
-	      :form form,
-	      :id newid)]
-    {:maxid newid,
-     :result (assoc-in result access-vec ans),
-     :parent-table (assoc parent-table newid parent-id)}))
-
-(defn update-mem-existing-id
-  [{:keys [maxid result parent-table] :as mem} form v id]
+  [{:keys [maxid result parent-table] :as mem} v id]
   (let [access-vec (get-access-vec parent-table id)
 	ans (assoc (get-in result access-vec)
 	      :out v,
-	      :form form,
 	      :id id)]
-    (assoc mem :result (assoc-in result access-vec ans))))
+    (assoc mem
+      :result (assoc-in result access-vec ans))))
 
-(defn allocate-id [{:keys [maxid result parent-table]} parent-id]
+(defn allocate-id [{:keys [maxid result parent-table]} form parent-id]
   (let [newid (inc maxid)
 	access-vec (get-access-vec parent-table parent-id newid)]
     {:maxid newid,
-     :result (assoc-in result access-vec {})
+     :result (assoc-in result access-vec {:form form})
      :parent-table (assoc parent-table newid parent-id)}))
 
 (defmacro memo-calc
   [mem form v parent-id-sym]
-  `(let [catched-v# (try ~v (catch java.lang.Exception e# e#))
-	 {id# :maxid, result# :result} (swap! ~mem update-mem ~form catched-v# ~parent-id-sym)
-	 access-vec# (conj (get-access-vec (:parent-table @~mem) id#) :out)]
-     (get-in result# access-vec#)))
+  `(let [[catched-v# err-flag#] (try [~v false]
+				 (catch java.lang.Exception e#
+				   [e# true]))
+	 {id# :maxid} (swap! ~mem allocate-id ~form ~parent-id-sym)]
+     (swap! ~mem update-mem catched-v# id#)
+     (if err-flag#
+       (throw catched-v#)
+       catched-v#)))
 
 (defmacro memo-calc-existing-id
-  [mem form v id-sym]
-  `(let [access-vec# (-> [:result]
-			 (into ,,, (get-access-vec (:parent-table @~mem) ~id-sym))
-			 (into ,,, [:out]))
-	 catched-v# (try ~v (catch java.lang.Exception e# e#))]
-     (swap! ~mem update-mem-existing-id ~form catched-v# ~id-sym)
-     (get-in @~mem access-vec#)))
+  [mem v id-sym]
+  `(let [[catched-v# err-flag#] (try [~v false]
+				     (catch java.lang.Exception e#
+				       [e# true]))]
+     (swap! ~mem update-mem catched-v# ~id-sym)
+     (if err-flag#
+       (throw catched-v#)
+       catched-v#)))
 
 (defn mem-init []
   {:maxid 0, :result (sorted-map), :parent-table {}})
 
 (defmacro maybe-f-cap [mem form parent-id-sym]
-  (if (elem? form)
-    `(memo-calc ~mem '~form ~form ~parent-id-sym)
-    (cond 
-      (seq? form) (let [[head & tail] form]
-		    (cond (special-symbol? head) `(sp-cap ~mem ~form ~parent-id-sym)
-			  :else (let [newid-sym (gensym "id")]
-				  `(let [~newid-sym (:maxid (swap! ~mem allocate-id ~parent-id-sym))]
-				     (memo-calc-existing-id
-				      ~mem '~form
-				      (apply (maybe-f-cap ~mem ~head ~newid-sym)
-					     (tail-cap ~mem ~tail ~newid-sym))
-				      ~newid-sym)))))
-      (coll? form) (let [newid-sym (gensym "id")]
-		     `(let [~newid-sym (:maxid (swap! ~mem allocate-id
-						       ~parent-id-sym))]
-			(memo-calc-existing-id
-			 ~mem '~form
-			 (conv-to ~form (tail-cap ~mem ~form ~newid-sym))
-			 ~newid-sym))))))
+  (cond
+    (or (elem? form) (empty? form)) `(memo-calc ~mem '~form ~form ~parent-id-sym)
+    (seq? form) (let [[head & tail] form]
+		  (cond (special-symbol? head) `(sp-cap ~mem ~form ~parent-id-sym)
+			:else (let [newid-sym (gensym "id")]
+				`(let [~newid-sym (:maxid (swap! ~mem allocate-id '~form ~parent-id-sym))]
+				   (memo-calc-existing-id
+				    ~mem
+				    (apply (maybe-f-cap ~mem ~head ~newid-sym)
+					   (tail-cap ~mem ~tail ~newid-sym))
+				    ~newid-sym)))))
+    (coll? form) (let [newid-sym (gensym "id")]
+		   `(let [~newid-sym (:maxid (swap! ~mem allocate-id '~form
+						    ~parent-id-sym))]
+		      (memo-calc-existing-id
+		       ~mem
+		       (conv-to ~form (tail-cap ~mem ~form ~newid-sym))
+		       ~newid-sym)))))
 
 (defmacro tail-cap [mem form parent-id-sym]
   (let [head (first form)
@@ -134,7 +126,7 @@
 (defmacro sp-cap [mem form parent-id-sym]
   (let [[head & tail] form]
     (let [newid-sym (gensym "id")]
-      `(let [~newid-sym (:maxid (swap! ~mem allocate-id ~parent-id-sym))]
+      `(let [~newid-sym (:maxid (swap! ~mem allocate-id '~form ~parent-id-sym))]
 	 ~(condp = head
 	    'let* (let [binds (second form)
 			body (drop 2 form)
@@ -144,65 +136,60 @@
 			code `(let* ~newbinds
 				    ~@(map #(list 'maybe-f-cap mem % newid-sym) body))]
 		    `(memo-calc-existing-id ~mem
-					    '~form
 					    ~code
 					    ~newid-sym))
 	    'def (let [[var-name [fs _ :as body]] tail]
 		   `(memo-calc-existing-id
 		     ~mem
-		     '~form
 		     (def ~var-name (maybe-f-cap ~mem ~body ~newid-sym))
 		     ~newid-sym))
 	    'fn* `(memo-calc-existing-id
 		   ~mem
-		   '~form
 		   ~(reconst-fn mem tail parent-id-sym)
 		   ~newid-sym)
 	    'if `(memo-calc-existing-id
 		  ~mem
-		  '~form
 		  (if ~@(map #(list 'maybe-f-cap mem % newid-sym) tail))
 		  ~newid-sym)
 	    'do `(memo-calc-existing-id
 		  ~mem
-		  '~form
 		  (do ~@(map #(list 'maybe-f-cap mem % newid-sym) tail))
 		  ~newid-sym)
 	    'quote `(memo-calc-existing-id ~mem
-					   '~form
 					   ~form
 					   ~newid-sym)
 	    '.     `(memo-calc-existing-id ~mem
-					   '~form
 					   ~form
 					   ~newid-sym)
 	    'new   `(memo-calc-existing-id ~mem
-					   '~form
 					   ~form
 					   ~newid-sym)
 	    'var   `(memo-calc-existing-id ~mem
-					   '~form
 					   ~form
 					   ~newid-sym)
 	    'loop* `(memo-calc-existing-id ~mem
-					   '~form
 					   ~form
 					   ~newid-sym)
 	    'recur `form
 	    'try   `(memo-calc-existing-id ~mem
-					   '~form
+					   (try ~@(map (fn [exp]
+							 (cond (elem? exp) (list 'maybe-f-cap mem exp newid-sym)
+							       :else (let [op (first exp)]
+								       (if (or (= 'catch op) (= 'finally op))
+									 exp
+									 (list 'maybe-f-cap mem exp newid-sym)))))
+						       tail))
+					   ~newid-sym)
+	    'catch `(memo-calc-existing-id ~mem
+					   ~form
+					   ~newid-sym)
+	    'finally `(memo-calc-existing-id ~mem
 					   ~form
 					   ~newid-sym)
 	    'throw `(memo-calc-existing-id ~mem
-					   '~form
-					   ~form
-					   ~newid-sym)
-	    'catch `(memo-calc-existing-id ~mem
-					   '~form
 					   ~form
 					   ~newid-sym)
 	    'set!  `(memo-calc-existing-id ~mem
-					   '~form
 					   ~form
 					   ~newid-sym))))))
   
@@ -254,11 +241,15 @@
 (defmacro cap
   ([form]
      `(let [mem# (atom (mem-init))]
-	(maybe-f-cap mem# ~(macroexpand-all form) nil)
-	(print-node @mem# 0 :1line)
-	(get-in (:result @mem#)
-		(conj (get-access-vec (:parent-table @mem#) 1)
-		      :out))))
+	(try (maybe-f-cap mem# ~(macroexpand-all form) nil)
+	     (print-node @mem# 0 :1line)
+	     (get-in (:result @mem#)
+		     (conj (get-access-vec (:parent-table @mem#) 1)
+			   :out))
+	     (catch java.lang.Exception e#
+	       (println @mem#)
+	       (print-node @mem# 0 :1line)
+	       e#))))
   ([caller form]
      (let [expanded (macroexpand-all form)
 	   op (first expanded)
