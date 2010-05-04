@@ -40,7 +40,7 @@ user> (cap (* 2 (+ (- 3 8) 4)))
 -2
 </pre>
 
-You can see the function which throw exception easily.
+You can easily see the function which throw exception.
 
 <pre class="console">
 user> (cap (+ 1 3 (- 2 3) (/ 2 0) (* 2 3)))
