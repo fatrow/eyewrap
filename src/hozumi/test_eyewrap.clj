@@ -110,9 +110,9 @@
 	(is (= 4 (cap ((fn [x] (* x x)) 2)))))
       (testing "tracing defn"
 	(cap yyy (defn- touch [coll target-index]
-		 (-> [(coll target-index)]
-		     (into (subvec coll 0 target-index))
-		     (into (subvec coll (inc target-index))))))
+		   (-> [(coll target-index)]
+		       (into (subvec coll 0 target-index))
+		       (into (subvec coll (inc target-index))))))
 	(is (= [3 1 2 4 5] (touch [1 2 3 4 5] 2)))
 	(is (= [:b :a :c] (touch [:a :b :c] 1)))
 	(yyy 1)
@@ -157,5 +157,7 @@
 	(is (= () (cap (try ()))))
 	(is (= :a (cap (try :a))))
 	(is (= nil (cap (try nil)))))
+      (testing "let"
+	(is (= 14 (cap (let [a (+ 1 (* 2 3)) b (/ 6 3)] (* a b))))))
       (testing "special-form"
 	(is (number? (cap (System/currentTimeMillis)))))))

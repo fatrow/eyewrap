@@ -192,51 +192,64 @@
 	    'set!  `(memo-calc-existing-id ~mem
 					   ~form
 					   ~newid-sym))))))
-  
-(def *max-print-size* 100)
 
-(defn lazy-chked-v [out]
-  (if (= clojure.lang.LazySeq (type out))
-    (let [data (take (+ 1 *max-print-size*) out)]
-      (if (= (+ 1 *max-print-size*) (count data))
-	(concat data ['...LazySeq...])
-	data))
-    out))
-
-(defn my-print [level typ form style]
-  (condp = style
-    :pp (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
-	 (let [str-writer (java.io.StringWriter.)]
-	   (pprint form str-writer)
-	   (println (.trim (.replaceAll (.toString str-writer)
-					"\n"
-					(apply str (concat '("\n") (repeat 6 " ")
-							   (repeat level " "))))))))
-    :1line (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
-	       (println form))))
-
-(defn print-node1 [{:keys [id form out child]} level style]
-  (cond (= form out) :const
-	(elem? form) out
-	:else (do (my-print level "+" form style)
-		  (let [uptodate-form (atom form)
-			limited-size-v (lazy-chked-v out)
-			[first-child :as my-childs] (reverse (vals child))
-			target-childs (cond (and (seq? form)
-						 (or (special-symbol? (first form))
-						     (coll? (:out first-child)))) my-childs
-						 (and (seq? form)
-						      (elem? (:out first-child))) (rest my-childs)
-						 (coll? form) my-childs)]
-		    (doseq [{cform :form, cout :out, :as achild} target-childs]
-		      (let [child-out (print-node1 achild (inc level) style)]
-			(if (not= :const child-out)
-			  (my-print level "->" (swap! uptodate-form #(replace {cform child-out} %)) style))))
-		    (my-print level "=>" limited-size-v style)
-		    limited-size-v))))
+(defn replace1 [target replaced form]
+  (condp = (first form)
+    'let* (let [[_ binds & body] form
+		binds-val (take-nth 2 (rest binds))
+		[binds-val-f binds-val-l] (split-with #(not= target %) binds-val)]
+	    (if (empty? binds-val-l)
+	      `(let* ~binds ~@(replace1 target replaced body))
+	      `(let* ~(vec (interleave (take-nth 2 binds)
+				       (concat binds-val-f (list replaced) (rest binds-val-l))))
+		     ~@body)))
+    (let [[former latter] (split-with #(not= target %) form)]
+      (if (empty? latter)
+	former
+	(concat former (list replaced) (rest latter))))))
+    
+(def *max-print-size* 30)
 
 (defn print-node [{:keys [result]} n style]
-  (print-node1 (nth (vals (:child result)) n) 0 style))
+  (letfn
+      [(lazy-cked-v
+	[out]
+	(if (= clojure.lang.LazySeq (type out))
+	  (let [data (take (+ 1 *max-print-size*) out)]
+	    (if (= (+ 1 *max-print-size*) (count data))
+	      (concat data ['...LazySeq...])
+	      data))
+	  out))
+       (my-print
+	[level typ form]
+	(condp = style
+	  :pp (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
+		  (let [str-writer (java.io.StringWriter.)]
+		    (pprint form str-writer)
+		    (println (.trim (.replaceAll (.toString str-writer)
+						 "\n"
+						 (apply str (concat '("\n") (repeat 6 " ")
+								    (repeat level " "))))))))
+	  :1line (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
+		     (println form))))
+       (print-node1
+	[{:keys [id form out child]} level]
+	(cond (= form out) ::const
+	      (elem? form) out
+	      :else (do (my-print level "+" form)
+			(let [uptodate-form (atom form)
+			      limited-size-v (lazy-chked-v out)
+			      my-childs (reverse (vals child))]
+			  (doseq [{cform :form, cout :out, :as achild} my-childs]
+			    (if (not (fn? cout))
+			      (let [child-out (print-node1 achild (inc level))]
+				(if (not= ::const child-out)
+				  (my-print level "->"
+					    (swap! uptodate-form
+						   #(replace1 cform child-out %)))))))
+			  (my-print level "=>" limited-size-v)
+			  limited-size-v))))]
+    (print-node1 (nth (vals (:child result)) n) 0)))
 
 (defmacro cap
   ([form]
