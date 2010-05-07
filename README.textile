@@ -336,8 +336,8 @@ user> </pre>
 Using the *ids* option, you can print only the specific expression which id correspond to.
 The ids can be multiple, but must be in a position anterior to other option.
 This option is useful especially for tracing closure.
-<pre class="console">
 
+<pre class="console">
 user> (ppp 9 22 :v)
 ====================================================================================================
 0 :  9: + (subvec coll 0 target-index)
