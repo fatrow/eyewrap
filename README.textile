@@ -164,7 +164,7 @@ There are a few command line options that you may find interesting for if you wa
 or figure out where a problem is.
 
 
-Using the *:pp* option, the trace log is pprinted.
+Using the *:pp* option, you can see the pprinted trace log.
 
 <pre class="console">
 user> (ppp :pp)
@@ -236,7 +236,7 @@ user>
 
 
 
-Using the *:number* option, the preview trace log is printed.
+Using the *:number* option, you can see the preview trace log.
 
 <pre class="console">
 user> (ppp :v :1)
@@ -270,7 +270,7 @@ nil
 user> </pre>
 
 
-Using the *:all* option, the all trace log is printed.
+Using the *:all* option, you can see the all trace log.
 
 <pre class="console">
 user> (ppp :v :all)
@@ -368,7 +368,7 @@ If the corresponding expression is fn, ppp automatically print only previous exe
 So if you want to print all trace log, the :all option can be used.
 
 Using the *:i* option, you can print eyewrap's internal data.
-Using the *:c* option, the all trace cache is cleared.
+Using the *:c* option, you can clear the all trace cache.
 
 
 h1. Not support
