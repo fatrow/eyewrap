@@ -57,7 +57,10 @@ user> (cap (+ 1 3 (- 2 3) (/ 2 0) (* 2 3)))
 
 h2. Tracing defn
 
+You can see the trace log after executing code by using special function which the cap generate.
  *(cap name (defn ... code)* 
+ *(cap name (fn ... code)*
+ *(cap name (code...)*
 
 <pre class="console">
 user> (cap ppp (defn touch [coll target-index]
@@ -78,10 +81,10 @@ still empty
 
 <pre class="console">
 user> (ppp)
-:const
+nil
 </pre>
 
-Once defned function has been called, ppp will print trace log.
+Once target code has been called, ppp will print trace log.
 
 <pre class="console">
 user> (touch [1 2 3 4] 2)
@@ -116,8 +119,8 @@ user> (ppp)
 1 :=>   [4]
 0 :-> (into [3 1 2] [4])
 0 :=> [3 1 2 4]
-[3 1 2 4]
-user> 
+nil
+user>
 </pre>
 
 <pre class="console">
@@ -152,21 +155,225 @@ user> (ppp)
 1 :=>   []
 0 :-> (into [:c :a :b] [])
 0 :=> [:c :a :b]
-[:c :a :b]
+nil
 user>
 </pre>
 
-You can print previous trace log by calling *(ppp 1)*, because trace log is cached.
-*(ppp number)* : print old trace log.
-*(ppp :pp)*    : pprint trace log.
-*(ppp :c)*     : clear cache.
-*(ppp :internal)*    : print internal data.
+
+There are a few command line options that you may find interesting for if you want to change the looks of trace log,
+or figure out where a problem is.
+
+
+Using the *:pp* option, the trace log is pprinted.
+
+<pre class="console">
+user> (ppp :pp)
+0 : + (into
+       (into [(coll target-index)] (subvec coll 0 target-index))
+       (subvec coll (inc target-index)))
+1 : +   (into [(coll target-index)] (subvec coll 0 target-index))
+2 : +     [(coll target-index)]
+3 : +       (coll target-index)
+3 :->       ([:a :b :c] target-index)
+3 :->       ([:a :b :c] 2)
+3 :=>       :c
+2 :->     [:c]
+2 :=>     [:c]
+1 :->   (into [:c] (subvec coll 0 target-index))
+2 : +     (subvec coll 0 target-index)
+2 :->     (subvec [:a :b :c] 0 target-index)
+2 :->     (subvec [:a :b :c] 0 2)
+2 :=>     [:a :b]
+1 :->   (into [:c] [:a :b])
+1 :=>   [:c :a :b]
+0 :-> (into [:c :a :b] (subvec coll (inc target-index)))
+1 : +   (subvec coll (inc target-index))
+1 :->   (subvec [:a :b :c] (inc target-index))
+2 : +     (inc target-index)
+2 :->     (inc 2)
+2 :=>     3
+1 :->   (subvec [:a :b :c] 3)
+1 :=>   []
+0 :-> (into [:c :a :b] [])
+0 :=> [:c :a :b]
+nil
+user>
+</pre>
+
+Using the *:v* option, you can print id number which the expression of same line correspond.
+
+<pre class="console">
+user> (ppp :v)
+0 : 20: + (into (into [(coll target-index)] (subvec coll 0 target-index)) (subvec coll (inc target-index)))
+1 : 22: +   (into [(coll target-index)] (subvec coll 0 target-index))
+2 : 24: +     [(coll target-index)]
+3 : 25: +       (coll target-index)
+3 : 25:->       ([:a :b :c] target-index)
+3 : 25:->       ([:a :b :c] 2)
+3 : 25:=>       :c
+2 : 24:->     [:c]
+2 : 24:=>     [:c]
+1 : 22:->   (into [:c] (subvec coll 0 target-index))
+2 : 28: +     (subvec coll 0 target-index)
+2 : 28:->     (subvec [:a :b :c] 0 target-index)
+2 : 28:->     (subvec [:a :b :c] 0 2)
+2 : 28:=>     [:a :b]
+1 : 22:->   (into [:c] [:a :b])
+1 : 22:=>   [:c :a :b]
+0 : 20:-> (into [:c :a :b] (subvec coll (inc target-index)))
+1 : 33: +   (subvec coll (inc target-index))
+1 : 33:->   (subvec [:a :b :c] (inc target-index))
+2 : 36: +     (inc target-index)
+2 : 36:->     (inc 2)
+2 : 36:=>     3
+1 : 33:->   (subvec [:a :b :c] 3)
+1 : 33:=>   []
+0 : 20:-> (into [:c :a :b] [])
+0 : 20:=> [:c :a :b]
+nil
+user>
+</pre>
+
+
+
+Using the *:number* option, the preview trace log is printed.
+
+<pre class="console">
+user> (ppp :v :1)
+0 :  1: + (into (into [(coll target-index)] (subvec coll 0 target-index)) (subvec coll (inc target-index)))
+1 :  3: +   (into [(coll target-index)] (subvec coll 0 target-index))
+2 :  5: +     [(coll target-index)]
+3 :  6: +       (coll target-index)
+3 :  6:->       ([1 2 3 4] target-index)
+3 :  6:->       ([1 2 3 4] 2)
+3 :  6:=>       3
+2 :  5:->     [3]
+2 :  5:=>     [3]
+1 :  3:->   (into [3] (subvec coll 0 target-index))
+2 :  9: +     (subvec coll 0 target-index)
+2 :  9:->     (subvec [1 2 3 4] 0 target-index)
+2 :  9:->     (subvec [1 2 3 4] 0 2)
+2 :  9:=>     [1 2]
+1 :  3:->   (into [3] [1 2])
+1 :  3:=>   [3 1 2]
+0 :  1:-> (into [3 1 2] (subvec coll (inc target-index)))
+1 : 14: +   (subvec coll (inc target-index))
+1 : 14:->   (subvec [1 2 3 4] (inc target-index))
+2 : 17: +     (inc target-index)
+2 : 17:->     (inc 2)
+2 : 17:=>     3
+1 : 14:->   (subvec [1 2 3 4] 3)
+1 : 14:=>   [4]
+0 :  1:-> (into [3 1 2] [4])
+0 :  1:=> [3 1 2 4]
+nil
+user> </pre>
+
+
+Using the *:all* option, the all trace log is printed.
+
+<pre class="console">
+user> (ppp :v :all)
+----------------------------------------------------------------------------------------------------
+0 :  1: + (into (into [(coll target-index)] (subvec coll 0 target-index)) (subvec coll (inc target-index)))
+1 :  3: +   (into [(coll target-index)] (subvec coll 0 target-index))
+2 :  5: +     [(coll target-index)]
+3 :  6: +       (coll target-index)
+3 :  6:->       ([1 2 3 4] target-index)
+3 :  6:->       ([1 2 3 4] 2)
+3 :  6:=>       3
+2 :  5:->     [3]
+2 :  5:=>     [3]
+1 :  3:->   (into [3] (subvec coll 0 target-index))
+2 :  9: +     (subvec coll 0 target-index)
+2 :  9:->     (subvec [1 2 3 4] 0 target-index)
+2 :  9:->     (subvec [1 2 3 4] 0 2)
+2 :  9:=>     [1 2]
+1 :  3:->   (into [3] [1 2])
+1 :  3:=>   [3 1 2]
+0 :  1:-> (into [3 1 2] (subvec coll (inc target-index)))
+1 : 14: +   (subvec coll (inc target-index))
+1 : 14:->   (subvec [1 2 3 4] (inc target-index))
+2 : 17: +     (inc target-index)
+2 : 17:->     (inc 2)
+2 : 17:=>     3
+1 : 14:->   (subvec [1 2 3 4] 3)
+1 : 14:=>   [4]
+0 :  1:-> (into [3 1 2] [4])
+0 :  1:=> [3 1 2 4]
+----------------------------------------------------------------------------------------------------
+0 : 20: + (into (into [(coll target-index)] (subvec coll 0 target-index)) (subvec coll (inc target-index)))
+1 : 22: +   (into [(coll target-index)] (subvec coll 0 target-index))
+2 : 24: +     [(coll target-index)]
+3 : 25: +       (coll target-index)
+3 : 25:->       ([:a :b :c] target-index)
+3 : 25:->       ([:a :b :c] 2)
+3 : 25:=>       :c
+2 : 24:->     [:c]
+2 : 24:=>     [:c]
+1 : 22:->   (into [:c] (subvec coll 0 target-index))
+2 : 28: +     (subvec coll 0 target-index)
+2 : 28:->     (subvec [:a :b :c] 0 target-index)
+2 : 28:->     (subvec [:a :b :c] 0 2)
+2 : 28:=>     [:a :b]
+1 : 22:->   (into [:c] [:a :b])
+1 : 22:=>   [:c :a :b]
+0 : 20:-> (into [:c :a :b] (subvec coll (inc target-index)))
+1 : 33: +   (subvec coll (inc target-index))
+1 : 33:->   (subvec [:a :b :c] (inc target-index))
+2 : 36: +     (inc target-index)
+2 : 36:->     (inc 2)
+2 : 36:=>     3
+1 : 33:->   (subvec [:a :b :c] 3)
+1 : 33:=>   []
+0 : 20:-> (into [:c :a :b] [])
+0 : 20:=> [:c :a :b]
+nil
+user> </pre>
+
+
+
+Using the *ids* option, you can print only the specific expression which id correspond to.
+The ids can be multiple, but must be in a position anterior to other option.
+This option is useful especially for tracing closure.
+<pre class="console">
+
+user> (ppp 9 22 :v)
+====================================================================================================
+0 :  9: + (subvec coll 0 target-index)
+0 :  9:-> (subvec [1 2 3 4] 0 target-index)
+0 :  9:-> (subvec [1 2 3 4] 0 2)
+0 :  9:=> [1 2]
+====================================================================================================
+0 : 22: + (into [(coll target-index)] (subvec coll 0 target-index))
+1 : 24: +   [(coll target-index)]
+2 : 25: +     (coll target-index)
+2 : 25:->     ([:a :b :c] target-index)
+2 : 25:->     ([:a :b :c] 2)
+2 : 25:=>     :c
+1 : 24:->   [:c]
+1 : 24:=>   [:c]
+0 : 22:-> (into [:c] (subvec coll 0 target-index))
+1 : 28: +   (subvec coll 0 target-index)
+1 : 28:->   (subvec [:a :b :c] 0 target-index)
+1 : 28:->   (subvec [:a :b :c] 0 2)
+1 : 28:=>   [:a :b]
+0 : 22:-> (into [:c] [:a :b])
+0 : 22:=> [:c :a :b]
+nil
+user> 
+</pre>
+
+If the corresponding expression is fn, ppp automatically print only previous executed trace log.
+So if you want to print all trace log, the :all option can be used.
+
+Using the *:i* option, you can print eyewrap's internal data.
+Using the *:c* option, the all trace cache is cleared.
+
 
 h1. Not support
 
-h3. *recur, etc...* 
-
-
+h3. *recur. mutable data (can be used, but displayed as uptodate value.)*
 
 
  

@@ -2,7 +2,8 @@
   #^{:author "Takahiro Hozumi"
      :doc "code observetion tool."}
   hozumi.eyewrap
-  (:use [clojure.contrib.pprint]))
+  (:use [clojure.contrib.pprint]
+	[clojure.set :only [difference]]))
 
 
 (defn elem? [x]
@@ -145,7 +146,7 @@
 		     ~newid-sym))
 	    'fn* `(memo-calc-existing-id
 		   ~mem
-		   ~(reconst-fn mem tail parent-id-sym)
+		   ~(reconst-fn mem tail newid-sym)
 		   ~newid-sym)
 	    'if `(memo-calc-existing-id
 		  ~mem
@@ -194,25 +195,28 @@
 					   ~newid-sym))))))
 
 (defn replace1 [target replaced form]
-  (condp = (first form)
-    'let* (let [[_ binds & body] form
-		binds-val (take-nth 2 (rest binds))
-		[binds-val-f binds-val-l] (split-with #(not= target %) binds-val)]
-	    (if (empty? binds-val-l)
-	      `(let* ~binds ~@(replace1 target replaced body))
-	      `(let* ~(vec (interleave (take-nth 2 binds)
-				       (concat binds-val-f (list replaced) (rest binds-val-l))))
-		     ~@body)))
-    (let [[former latter] (split-with #(not= target %) form)]
-      (if (empty? latter)
-	former
-	(concat former (list replaced) (rest latter))))))
-    
+  (if (fn? replaced)
+    form
+    (condp = (first form)
+      'let* (let [[_ binds & body] form
+		  binds-val (take-nth 2 (rest binds))
+		  [binds-val-f binds-val-l] (split-with #(not= target %) binds-val)]
+	      (if (empty? binds-val-l)
+		`(let* ~binds ~@(replace1 target replaced body))
+		`(let* ~(vec (interleave (take-nth 2 binds)
+					 (concat binds-val-f (list replaced) (rest binds-val-l))))
+		       ~@body)))
+      (let [[former latter] (split-with #(not= target %) form)]
+	(cond
+	  (empty? latter) form
+	  (vector? form) (assoc form (count former) replaced)
+	  :else (concat former (list replaced) (rest latter)))))))
+  
 (def *max-print-size* 30)
 
-(defn print-node [{:keys [result]} n style]
+(defn print-node [{:keys [result, parent-table]} node-id style]
   (letfn
-      [(lazy-cked-v
+      [(lazy-chked-v
 	[out]
 	(if (= clojure.lang.LazySeq (type out))
 	  (let [data (take (+ 1 *max-print-size*) out)]
@@ -221,70 +225,107 @@
 	      data))
 	  out))
        (my-print
-	[level typ form]
-	(condp = style
-	  :pp (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
-		  (let [str-writer (java.io.StringWriter.)]
-		    (pprint form str-writer)
-		    (println (.trim (.replaceAll (.toString str-writer)
-						 "\n"
-						 (apply str (concat '("\n") (repeat 6 " ")
-								    (repeat level " "))))))))
-	  :1line (do (printf "%-2d:%2s %s" level typ (apply str (repeat level "  ")))
-		     (println form))))
+	[level typ form id]
+	(let [idstring (if (get style :v false) (format "%3d:" id) "")]
+	  ;(println style)
+	  (cond
+	    (:pp style) (do (printf "%-2d:%s%2s %s" level idstring typ (apply str (repeat level "  ")))
+			    (let [str-writer (java.io.StringWriter.)]
+			      (pprint form str-writer)
+			      (println (.trim (.replaceAll (.toString str-writer)
+							   "\n"
+							   (apply str (concat '("\n")
+									      (repeat (if (:v style) 10 6) " ")
+									      (repeat level "  "))))))))
+	    (:1line style) (do (printf "%-2d:%s%2s %s" level idstring typ (apply str (repeat level "  ")))
+			       (println form)))))
        (print-node1
 	[{:keys [id form out child]} level]
 	(cond (= form out) ::const
 	      (elem? form) out
-	      :else (do (my-print level "+" form)
+	      :else (do (my-print level "+" form id)
 			(let [uptodate-form (atom form)
 			      limited-size-v (lazy-chked-v out)
 			      my-childs (reverse (vals child))]
-			  (doseq [{cform :form, cout :out, :as achild} my-childs]
-			    (if (not (fn? cout))
-			      (let [child-out (print-node1 achild (inc level))]
-				(if (not= ::const child-out)
-				  (my-print level "->"
-					    (swap! uptodate-form
-						   #(replace1 cform child-out %)))))))
-			  (my-print level "=>" limited-size-v)
+			  (doseq [{cform :form, cout :out, child-childs :child, :as achild} my-childs]
+			    (let [child-out (print-node1 achild (inc level))]
+			      (if (and (not= ::const child-out)
+				       (not (fn? child-out)))
+				(my-print level "->"
+					  (swap! uptodate-form
+						 #(replace1 cform child-out %))
+					  id))))
+			  (my-print level "=>" limited-size-v id)
 			  limited-size-v))))]
-    (print-node1 (nth (vals (:child result)) n) 0)))
+    (let [node (get-in result (get-access-vec parent-table node-id))]
+      (if (fn? (get node :out +))
+	(let [child-nodes (-> node :child vals)
+	      child-nodes (if (get style :all false)
+			    child-nodes
+			    (list (nth child-nodes (:nth style))))]
+	  (doseq [child-node (reverse child-nodes)]
+	    (if (<= 2 (count child-nodes))
+	      (println (apply str (repeat 100 "-"))))
+	    (print-node1 child-node 0)))
+	(print-node1 node 0)))))
 
 (defmacro cap
   ([form]
      `(let [mem# (atom (mem-init))]
 	(try (maybe-f-cap mem# ~(macroexpand-all form) nil)
-	     (print-node @mem# 0 :1line)
+	     (print-node @mem# nil {:nth 0, :1line true})
 	     (get-in (:result @mem#)
 		     (conj (get-access-vec (:parent-table @mem#) 1)
 			   :out))
 	     (catch java.lang.Exception e#
-	       (print-node @mem# 0 :1line)
+	       (print-node @mem# nil {:nth 0, :1line true})
 	       e#))))
   ([caller form]
-     (let [expanded (macroexpand-all form)
-	   op (first expanded)
-	   name (second expanded)
-	   third (first (drop 2 expanded))]
-       (let [mem (gensym "mem")]	     
-	 `(let [~mem (atom (mem-init))]
-	    ~(if (and (= 'def op)
-		      (= 'fn* (first third)))
-	       (do `(do (defn ~caller
-			  ([] (print-node @~mem 0 :1line))
-			  ([x#] (cond (number? x#) (print-node @~mem x# :1line)
-				      :else (condp = x#
-					      :pp (print-node @~mem 0 :pp)
-					      :internal (pprint @~mem)
-					      :c (do (reset! ~mem (mem-init))
-						     @~mem)
-					      (println ":pp - pprint trace log.
-number - print old trace log.
-:internal - print internal data.
-:c - clear cache.")))))
-			(def ~name
-			     ~(let [fnbodies (rest third)]
-				(reconst-fn mem fnbodies nil)))))
-	       `(cap ~form)))))))
+     (let [mem (gensym "mem")]
+       `(let [~mem (atom (mem-init))]
+	  (defn ~caller
+	    ([] (~caller nil))
+	    ([& args#] (let [[node-ids# options#] (split-with (fn [arg#] (or (number? arg#) (nil? arg#))) args#)
+			     node-ids# (if (empty? node-ids#) [nil] node-ids#)
+			     history-key# (first (filter
+						  (fn [op-key#]
+						    (nil? (re-seq #"[^0-9]"
+								  (apply str (rest (str op-key#))))))
+						  options#))
+			     history-str#  (first (filter (fn [op-str#] (nil? (re-seq #"[^0-9]" op-str#)))
+							  (map (fn [op#] (apply str (rest (str op#)))) options#)))
+			     history-num# (if history-str# (Integer. history-str#) 0)
+			     option-map# (assoc (apply hash-map (interleave options# (repeat true)))
+					   :nth history-num#)
+			     option-map# (if (or (:pp option-map#)
+						  (:1line option-map#))
+					   option-map#
+					   (assoc option-map# :1line true))
+			     ope-set# (difference (set (keys option-map#))
+						  #{:v :all :pp :1line :nth history-key#})]
+			 (doseq [id# node-ids#]
+			   (if (<= 2 (count node-ids#))
+			     (println (apply str (repeat 100 "="))))
+			   (print-node @~mem id# option-map#))
+			 (doseq [opt# ope-set#]
+			   (condp = opt#
+			     :i (pprint @~mem)
+			     :c    (do (reset! ~mem (mem-init))
+				       @~mem)
+			     (println "id (e.g. 2, 9, 12..) - print only specific expression which ids correspond to.
+:v - print id.
+:pp - pprint trace log.
+:number (e.g. :1, :2, :3..)  - print old trace log.
+:all - print all trace log.
+:i - print internal data.
+:c - clear cache."))))))
+	  ~(let [expanded (macroexpand-all form)
+		 fs (first expanded)
+		 se (second expanded)
+		 third (first (drop 2 expanded))]
+	     (cond (and (= 'def fs)
+			(= 'fn* (first third))) `(def ~se
+						      ~(reconst-fn mem (rest third) nil))
+			(= 'fn* fs) (reconst-fn mem (rest expanded) nil)
+			:else `(maybe-f-cap ~mem ~expanded nil)))))))
 
