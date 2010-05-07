@@ -200,7 +200,7 @@ nil
 user>
 </pre>
 
-Using the *:v* option, you can print id number which the expression of same line correspond.
+Using the *:v* option, you can print id number which the expression of same line correspond to.
 
 <pre class="console">
 user> (ppp :v)
