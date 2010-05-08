@@ -9,6 +9,9 @@
 (defn elem? [x]
   (not (coll? x)))
 
+(defn func? [x]
+  (or (ifn? x) (fn? x)))
+
 (defn conv-to [type coll]
   (cond (vector? type) (vec coll)
 	(map? type) (apply merge {} coll)
