@@ -163,12 +163,17 @@
 					   ~form
 					   ~newid-sym)
 	    '.     `(memo-calc-existing-id ~mem
-					   (. ~@(map #(if (and (seq? %) (func? (resolve (first %))))
+					   (. ~@(map #(if (and (seq? %)
+							       (or (func? (resolve (first %)))
+								   (special-symbol? (first %))))
 							(list 'maybe-f-cap mem % newid-sym) %)
 						     tail))
 					   ~newid-sym)
 	    'new   `(memo-calc-existing-id ~mem
-					   ~form
+					   (new ~@(map #(if (and (seq? %) (or (func? (resolve (first %)))
+									      (special-symbol? (first %))))
+							  (list 'maybe-f-cap mem % newid-sym) %)
+						       tail))
 					   ~newid-sym)
 	    'var   `(memo-calc-existing-id ~mem
 					   ~form
