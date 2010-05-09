@@ -164,4 +164,6 @@
       (testing "let"
 	(is (= 14 (cap (let [a (+ 1 (* 2 3)) b (/ 6 3)] (* a b))))))
       (testing "special-form"
-	(is (number? (cap (System/currentTimeMillis)))))))
+	(is (number? (cap (System/currentTimeMillis)))))
+      (testing "clojure 1.2.0 fn"
+	(is (= 2 (cap ((fn my [x] (inc x)) 1)))))))

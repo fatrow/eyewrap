@@ -118,14 +118,18 @@
 	  (coll? head) `(cons (maybe-f-cap ~mem ~head ~parent-id-sym)
 			      (tail-cap ~mem ~tail ~parent-id-sym)))))
 
-(defn reconst-fn [mem body newid-sym]
-  (let [uniformed-body (if (vector? (first body)) (list body) body)]
-    `(fn* ~@(map (fn [arg body] (list arg body))
-		 (map first uniformed-body)
-		 (map #(if (= 1 (count %))
-			 `(maybe-f-cap ~mem ~@% ~newid-sym)
-			 `(maybe-f-cap ~mem (do ~@%) ~newid-sym))
-		      (map rest uniformed-body))))))
+(defn reconst-fn [mem form newid-sym]
+  (let [pure-body (if (symbol? (first form)) (rest form) form)
+	uniformed-body (if (vector? (first pure-body)) (list pure-body) pure-body)
+	conved-body (map (fn [arg body] (list arg body))
+			 (map first uniformed-body)
+			 (map #(if (= 1 (count %))
+				 `(maybe-f-cap ~mem ~@% ~newid-sym)
+				 `(maybe-f-cap ~mem (do ~@%) ~newid-sym))
+			      (map rest uniformed-body)))]
+    (if (symbol? (first form))
+      `(fn* ~(first form) ~@conved-body)
+      `(fn* ~@conved-body))))
 
 (defmacro sp-cap [mem form parent-id-sym]
   (let [[head & tail] form]
@@ -257,14 +261,15 @@
 			(let [uptodate-form (atom form)
 			      limited-size-v (lazy-chked-v out)
 			      my-childs (reverse (vals child))]
-			  (doseq [{cform :form, cout :out, child-childs :child, :as achild} my-childs]
-			    (let [child-out (print-node1 achild (inc level))]
-			      (if (and (not= ::const child-out)
-				       (not (fn? child-out)))
-				(my-print level "->"
-					  (swap! uptodate-form
-						 #(replace1 cform child-out %))
-					  id))))
+			  (if (not (:s style))
+			    (doseq [{cform :form, cout :out, child-childs :child, :as achild} my-childs]
+			      (let [child-out (print-node1 achild (inc level))]
+				(if (and (not= ::const child-out)
+					 (not (fn? child-out)))
+				  (my-print level "->"
+					    (swap! uptodate-form
+						   #(replace1 cform child-out %))
+					    id)))))
 			  (my-print level "=>" limited-size-v id)
 			  limited-size-v))))]
     (let [node (get-in result (get-access-vec parent-table node-id))]
@@ -312,7 +317,7 @@
 					   option-map#
 					   (assoc option-map# :1line true))
 			     ope-set# (difference (set (keys option-map#))
-						  #{:v :all :pp :1line :nth history-key#})]
+						  #{:v :all :pp :1line :nth :s history-key#})]
 			 (doseq [id# node-ids#]
 			   (if (<= 2 (count node-ids#))
 			     (println (apply str (repeat 100 "="))))
@@ -336,6 +341,11 @@
 	     (cond (and (= 'def fs)
 			(= 'fn* (first third))) `(def ~se
 						      ~(reconst-fn mem (rest third) nil))
+		   (and (= 'def fs)
+			(= '. (first third))
+			(= 'fn* (first (second third)))) `(def ~se
+							       ~(replace {(second third)
+									  (reconst-fn mem (rest (second third)) nil)} third))
 			(= 'fn* fs) (reconst-fn mem (rest expanded) nil)
 			:else `(maybe-f-cap ~mem ~expanded nil)))))))
 
