@@ -228,6 +228,10 @@
   
 (def *max-print-size* 30)
 
+(defn ref-or-atom? [form]
+  (or (= clojure.lang.Ref (type form))
+      (= clojure.lang.Atom (type form))))
+
 (defn print-node [{:keys [result, parent-table]} node-id style]
   (letfn
       [(lazy-chked-v
@@ -256,6 +260,7 @@
        (print-node1
 	[{:keys [id form out child]} level]
 	(cond (= form out) ::const
+	      (ref-or-atom? out) (.toString out)
 	      (elem? form) out
 	      :else (do (my-print level "+" form id)
 			(let [uptodate-form (atom form)

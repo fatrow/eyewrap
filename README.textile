@@ -7,7 +7,7 @@ Feel free to tell me problem or code which doesn't work well.
 h1. Installation
 
 leiningen
-:dev-dependencies [[eyewrap "0.6.3"]]
+:dev-dependencies [[eyewrap "0.6.4"]]
 
 h1. Usage
 
@@ -373,7 +373,7 @@ Using the *:c* option, you can clear the all trace cache.
 
 h1. Not support
 
-h3. *recur. mutable data (can be used, but displayed as uptodate value.)*
+h3. *recur*
 
 
  
