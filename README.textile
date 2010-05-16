@@ -7,7 +7,7 @@ Feel free to tell me problem or code which doesn't work well.
 h1. Installation
 
 leiningen
-:dev-dependencies [[eyewrap "0.6.2"]]
+:dev-dependencies [[eyewrap "0.6.3"]]
 
 h1. Usage
 

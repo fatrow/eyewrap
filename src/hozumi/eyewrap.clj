@@ -286,15 +286,16 @@
 
 (defmacro cap
   ([form]
-     `(let [mem# (atom (mem-init))]
-	(try (maybe-f-cap mem# ~(macroexpand-all form) nil)
-	     (print-node @mem# nil {:nth 0, :1line true})
-	     (get-in (:result @mem#)
-		     (conj (get-access-vec (:parent-table @mem#) 1)
+     (let [mem (gensym "mem")]
+       `(let [~mem (atom (mem-init))]
+	(try (maybe-f-cap ~mem ~(macroexpand-all form) nil)
+	     (print-node @~mem nil {:nth 0, :1line true})
+	     (get-in (:result @~mem)
+		     (conj (get-access-vec (:parent-table @~mem) 1)
 			   :out))
 	     (catch java.lang.Exception e#
-	       (print-node @mem# nil {:nth 0, :1line true})
-	       e#))))
+	       (print-node @~mem nil {:nth 0, :1line true})
+	       e#)))))
   ([caller form]
      (let [mem (gensym "mem")]
        `(let [~mem (atom (mem-init))]
