@@ -7,7 +7,9 @@ Feel free to tell me problem or code which doesn't work well.
 h1. Installation
 
 leiningen
+<pre class="console">
 :dev-dependencies [[eyewrap "0.6.4"]]
+</pre>
 
 h1. Usage
 
